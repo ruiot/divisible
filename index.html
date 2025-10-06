@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Divisible - 因数分解ゲーム v0.0.1</title>
+  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { margin: 0; overflow: hidden; }
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    @keyframes fragment-bounce {
+      0% {
+        left: var(--start-x);
+        top: var(--start-y);
+        transform: translate(-50%, -50%) scale(1) rotate(0deg);
+        opacity: 1;
+      }
+      40% {
+        left: var(--mid-x);
+        top: var(--mid-y);
+        transform: translate(-50%, -50%) scale(0.9) rotate(360deg);
+        opacity: 1;
+      }
+      100% {
+        left: var(--target-x);
+        top: var(--target-y);
+        transform: translate(-50%, -50%) scale(0.3) rotate(1080deg);
+        opacity: 0;
+      }
+    }
+    @keyframes explode {
+      0% { transform: scale(0.5); opacity: 1; }
+      50% { transform: scale(1.5); opacity: 0.8; }
+      100% { transform: scale(2); opacity: 0; }
+    }
+    @keyframes vanish {
+      0% { transform: scale(1) rotate(0deg); opacity: 1; }
+      100% { transform: scale(2) rotate(360deg); opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Divisible Game v0.0.1 -->
+  <div id="root"></div>
+  <script type="text/babel" src="game.js"></script>
+</body>
+</html>
