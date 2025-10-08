@@ -487,7 +487,7 @@ return (
 }
 
 return (
-<div className="h-screen bg-gradient-to-b from-blue-300 to-purple-400 p-2 pb-8 flex flex-col">
+<div className="h-screen bg-gradient-to-b from-blue-300 to-purple-400 p-2 pb-16 flex flex-col">
 <div className="max-w-4xl mx-auto w-full h-full flex flex-col">
 <div className="bg-white rounded-xl p-2 mb-2 shadow-lg flex-shrink-0">
 <div className="flex justify-between items-center text-xs sm:text-sm">
