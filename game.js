@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+// import React, { useState, useEffect, useRef } from 'react';
+const { useState, useEffect, useRef } = React;
 
 // Divisible Game v0.1.0
 const DivisionMonsterGame = () => {
