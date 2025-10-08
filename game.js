@@ -1,6 +1,6 @@
-// Divisible Game v0.0.1
-const { useState, useEffect, useRef } = React;
+import React, { useState, useEffect, useRef } from 'react';
 
+// Divisible Game v0.1.0
 const DivisionMonsterGame = () => {
   const [gameState, setGameState] = useState('menu');
   const [monsters, setMonsters] = useState([]);
@@ -18,6 +18,9 @@ const DivisionMonsterGame = () => {
   const audioContextRef = useRef(null);
   const boomerangIntervalRef = useRef(null);
   const processedMonstersRef = useRef(new Set());
+  const buttonRefs = useRef({});
+
+  const VERSION = 'v0.1.0';
 
   const validNumbers = [
     4, 6, 8, 9, 10, 12, 14, 15, 16, 18, 20, 21, 24, 25, 27, 28, 30, 32, 35, 36, 40, 42, 45, 48, 49, 50, 54, 56, 60, 63, 64, 70, 72, 75, 80, 81, 84, 90, 96, 98, 100
@@ -77,7 +80,7 @@ const DivisionMonsterGame = () => {
     }
   };
 
-  const getMonsterColor = (num) => {
+  const getFactors = (num) => {
     let n = num;
     const factors = { 2: 0, 3: 0, 5: 0, 7: 0 };
     
@@ -88,14 +91,50 @@ const DivisionMonsterGame = () => {
       }
     });
     
+    return factors;
+  };
+
+  const getPattern = (factors) => {
+    const patterns = [];
+    
+    if (factors[2] > 0) {
+      patterns.push('repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.15) 2px, rgba(255,255,255,0.15) 4px)');
+    }
+    if (factors[3] > 0) {
+      patterns.push('repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(255,255,255,0.15) 2px, rgba(255,255,255,0.15) 4px)');
+    }
+    if (factors[5] > 0) {
+      patterns.push('radial-gradient(circle, rgba(255,255,255,0.2) 25%, transparent 25%)');
+    }
+    if (factors[7] > 0) {
+      patterns.push('repeating-conic-gradient(rgba(255,255,255,0.15) 0% 25%, transparent 25% 50%)');
+    }
+    
+    return patterns.length > 0 ? patterns.join(', ') : 'none';
+  };
+
+  const getMonsterColor = (num) => {
+    const factors = getFactors(num);
     const total = factors[2] + factors[3] + factors[5] + factors[7];
-    if (total === 0) return { rgb: 'rgb(250, 150, 150)' };
+    
+    if (total === 0) return { rgb: 'rgb(250, 150, 150)', pattern: 'none' };
     
     const r = Math.floor(150 + (factors[2] / total) * 100);
     const g = Math.floor(100 + (factors[5] / total) * 120);
     const b = Math.floor(120 + (factors[3] / total) * 130);
     
-    return { rgb: `rgb(${r}, ${g}, ${b})` };
+    return { 
+      rgb: `rgb(${r}, ${g}, ${b})`,
+      pattern: getPattern(factors)
+    };
+  };
+
+  const calculateScore = (ballsObj) => {
+    let product = 1;
+    for (const [num, count] of Object.entries(ballsObj)) {
+      product *= Math.pow(parseInt(num), count);
+    }
+    return product;
   };
 
   const getWaveMonsters = (waveNum) => {
@@ -110,8 +149,9 @@ const DivisionMonsterGame = () => {
 
   const startGame = () => {
     initAudio();
-    setBalls({2: 2, 3: 2, 4: 2});
-    setScore(0);
+    const initialBalls = {2: 2, 3: 2, 4: 2};
+    setBalls(initialBalls);
+    setScore(calculateScore(initialBalls));
     setWave(1);
     setAnimations([]);
     setNextMonsterId(1);
@@ -200,6 +240,22 @@ const DivisionMonsterGame = () => {
     }
   }, [monsters.length, gameState, boomerang]);
 
+  const getButtonPosition = (num) => {
+    const button = buttonRefs.current[num];
+    if (!button) return null;
+    
+    const rect = button.getBoundingClientRect();
+    const parent = button.closest('.h-screen');
+    if (!parent) return null;
+    
+    const parentRect = parent.getBoundingClientRect();
+    
+    return {
+      x: ((rect.left + rect.width / 2 - parentRect.left) / parentRect.width) * 100,
+      y: ((rect.top + rect.height / 2 - parentRect.top) / parentRect.height) * 100
+    };
+  };
+
   const throwBall = (ballNum) => {
     if (!balls[ballNum] || balls[ballNum] <= 0) return;
     if (boomerang) return;
@@ -207,6 +263,7 @@ const DivisionMonsterGame = () => {
     const newBalls = {...balls, [ballNum]: balls[ballNum] - 1};
     if (newBalls[ballNum] === 0) delete newBalls[ballNum];
     setBalls(newBalls);
+    setScore(calculateScore(newBalls));
     setTurnsLeft(t => t - 1);
 
     playSound('throw');
@@ -275,7 +332,6 @@ const DivisionMonsterGame = () => {
   const processHit = (targetMonster, ballNum) => {
     const result = targetMonster.number / ballNum;
     const count = ballNum;
-    const multiplier = Math.max(1, Math.floor(ballNum / 3));
 
     setMonsters(prev => prev.filter(m => m.id !== targetMonster.id));
     playSound('hit');
@@ -283,13 +339,18 @@ const DivisionMonsterGame = () => {
 
     setTimeout(() => {
       if (result >= 2 && result <= 9) {
-        const pocketX = 12.5 + (result - 2) * 12.5;
+        const buttonPos = getButtonPosition(result);
         
         for (let i = 0; i < count; i++) {
           const angle = (Math.PI * 2 * i) / count + Math.random() * 0.3;
           const distance = 8 + Math.random() * 6;
           const midX = targetMonster.x + Math.cos(angle) * distance;
           const midY = targetMonster.y + Math.sin(angle) * distance;
+          
+          const spreadAngle = (Math.PI * 2 * i) / count;
+          const spreadRadius = 2;
+          const offsetX = Math.cos(spreadAngle) * spreadRadius;
+          const offsetY = Math.sin(spreadAngle) * spreadRadius;
           
           setTimeout(() => {
             const animId = Date.now() + Math.random() + i;
@@ -301,8 +362,8 @@ const DivisionMonsterGame = () => {
               number: result,
               midX: midX,
               midY: midY,
-              targetX: pocketX,
-              targetY: 95
+              targetX: buttonPos ? buttonPos.x + offsetX : 12.5 + (result - 2) * 12.5,
+              targetY: buttonPos ? buttonPos.y + offsetY : 95
             }]);
             
             setTimeout(() => {
@@ -313,18 +374,18 @@ const DivisionMonsterGame = () => {
 
         setTimeout(() => {
           playSound('catch');
-          setBalls(prev => ({
-            ...prev,
-            [result]: (prev[result] || 0) + count
-          }));
-          setScore(s => s + 20 * multiplier);
+          const updatedBalls = {
+            ...balls,
+            [result]: (balls[result] || 0) + count
+          };
+          setBalls(updatedBalls);
+          setScore(calculateScore(updatedBalls));
           setMonstersDefeated(d => d + 1);
         }, 1200);
         
       } else if (result === 1) {
         playSound('vanish');
         addAnimation('vanish', targetMonster.x, targetMonster.y);
-        setScore(s => s + 50 * multiplier);
         setMonstersDefeated(d => d + 1);
       } else {
         const newMonsters = [];
@@ -347,7 +408,6 @@ const DivisionMonsterGame = () => {
         
         setMonsters(prev => [...prev, ...newMonsters]);
         setNextMonsterId(n => n + count);
-        setScore(s => s + 10 * multiplier);
       }
     }, 200);
   };
@@ -370,7 +430,7 @@ const DivisionMonsterGame = () => {
 
   if (gameState === 'menu') {
     return (
-      <div className="h-screen bg-gradient-to-b from-blue-400 to-purple-500 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-b from-blue-400 to-purple-500 flex items-center justify-center p-4">
         <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl">
           <h1 className="text-5xl font-bold text-center mb-4 text-purple-600">
             Divisible
@@ -387,7 +447,7 @@ const DivisionMonsterGame = () => {
             スタート
           </button>
           <div className="mt-4 text-center text-xs text-gray-400">
-            v0.0.1
+            {VERSION}
           </div>
         </div>
       </div>
@@ -396,7 +456,7 @@ const DivisionMonsterGame = () => {
 
   if (gameState === 'gameOver') {
     return (
-      <div className="h-screen bg-gradient-to-b from-gray-400 to-gray-600 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-b from-gray-400 to-gray-600 flex items-center justify-center p-4">
         <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl text-center">
           <h2 className="text-4xl font-bold mb-4 text-gray-700">ゲームオーバー</h2>
           <p className="text-2xl mb-2">ウェーブ: {wave}</p>
@@ -423,12 +483,12 @@ const DivisionMonsterGame = () => {
   }
 
   return (
-    <div className="h-screen bg-gradient-to-b from-blue-300 to-purple-400 p-2 flex flex-col">
-      <div className="max-w-4xl mx-auto w-full flex-1 flex flex-col">
-        <div className="bg-white rounded-xl p-3 mb-2 shadow-lg">
-          <div className="flex justify-between items-center text-sm">
+    <div className="h-screen bg-gradient-to-b from-blue-300 to-purple-400 p-2 flex flex-col overflow-hidden">
+      <div className="max-w-4xl mx-auto w-full h-full flex flex-col">
+        <div className="bg-white rounded-xl p-2 mb-2 shadow-lg flex-shrink-0">
+          <div className="flex justify-between items-center text-xs sm:text-sm">
             <div className="font-bold text-purple-600">Wave {wave}</div>
-            <div className="flex gap-4">
+            <div className="flex gap-2 sm:gap-4">
               <div className="text-blue-600 font-bold">スコア: {score}</div>
               <div className={`font-bold ${turnsLeft <= 3 ? 'text-red-600' : 'text-green-600'}`}>
                 ターン: {turnsLeft}
@@ -437,7 +497,7 @@ const DivisionMonsterGame = () => {
           </div>
         </div>
 
-        <div className="bg-gradient-to-b from-sky-100 to-sky-200 rounded-xl mb-2 shadow-lg relative flex-1 overflow-hidden">
+        <div className="bg-gradient-to-b from-sky-100 to-sky-200 rounded-xl mb-2 shadow-lg relative flex-1 overflow-hidden min-h-0">
           <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-red-400 to-transparent opacity-40"></div>
           
           {monsters.map(monster => {
@@ -459,7 +519,10 @@ const DivisionMonsterGame = () => {
                     width: `${size}px`,
                     height: `${size}px`,
                     fontSize: `${size / 2.5}px`,
-                    background: color.rgb
+                    background: color.rgb,
+                    backgroundImage: color.pattern,
+                    backgroundSize: color.pattern.includes('radial') ? '6px 6px' : 
+                                   color.pattern.includes('conic') ? '6px 6px' : 'auto'
                   }}
                 >
                   {monster.number}
@@ -479,12 +542,16 @@ const DivisionMonsterGame = () => {
             >
               <div className="relative">
                 <div className="absolute inset-0 bg-yellow-300 rounded-full blur-xl opacity-60 animate-pulse"></div>
-                <div className="relative bg-gradient-to-r from-yellow-400 via-orange-400 to-yellow-500 rounded-full flex items-center justify-center text-white font-bold shadow-2xl"
+                <div className="relative rounded-full flex items-center justify-center text-white font-bold shadow-2xl"
                   style={{ 
-                    width: '50px', 
-                    height: '50px', 
-                    fontSize: '24px',
-                    animation: 'spin 0.3s linear infinite'
+                    width: '40px',
+                    height: '40px',
+                    fontSize: '20px',
+                    animation: 'spin 0.3s linear infinite',
+                    background: getMonsterColor(boomerang.number).rgb,
+                    backgroundImage: getMonsterColor(boomerang.number).pattern,
+                    backgroundSize: getMonsterColor(boomerang.number).pattern.includes('radial') ? '6px 6px' : 
+                                   getMonsterColor(boomerang.number).pattern.includes('conic') ? '6px 6px' : 'auto'
                   }}
                 >
                   {boomerang.number}
@@ -504,29 +571,33 @@ const DivisionMonsterGame = () => {
               }}
             >
               {anim.type === 'explode' && (
-                <div className="text-5xl" style={{animation: 'explode 0.8s ease-out'}}>
+                <div className="text-3xl sm:text-5xl" style={{animation: 'explode 0.8s ease-out'}}>
                   💥
                 </div>
               )}
               {anim.type === 'vanish' && (
-                <div className="text-4xl" style={{animation: 'vanish 0.8s ease-out'}}>
+                <div className="text-2xl sm:text-4xl" style={{animation: 'vanish 0.8s ease-out'}}>
                   ✨
                 </div>
               )}
               {anim.type === 'fragment' && (
                 <div 
-                  className="bg-gradient-to-br from-blue-400 to-cyan-500 rounded-full flex items-center justify-center text-white font-bold shadow-xl"
+                  className="rounded-full flex items-center justify-center text-white font-bold shadow-xl"
                   style={{
-                    width: '35px',
-                    height: '35px',
-                    fontSize: '18px',
+                    width: '30px',
+                    height: '30px',
+                    fontSize: '16px',
                     animation: 'fragment-bounce 1.6s ease-out forwards',
                     '--start-x': `${anim.x}%`,
                     '--start-y': `${anim.y}%`,
                     '--mid-x': `${anim.midX}%`,
                     '--mid-y': `${anim.midY}%`,
                     '--target-x': `${anim.targetX}%`,
-                    '--target-y': `${anim.targetY}%`
+                    '--target-y': `${anim.targetY}%`,
+                    background: getMonsterColor(anim.number).rgb,
+                    backgroundImage: getMonsterColor(anim.number).pattern,
+                    backgroundSize: getMonsterColor(anim.number).pattern.includes('radial') ? '6px 6px' : 
+                                   getMonsterColor(anim.number).pattern.includes('conic') ? '6px 6px' : 'auto'
                   }}
                 >
                   {anim.number}
@@ -534,26 +605,38 @@ const DivisionMonsterGame = () => {
               )}
             </div>
           ))}
+          
+          <div className="absolute bottom-2 right-2 text-xs text-gray-500 opacity-50">
+            {VERSION}
+          </div>
         </div>
 
-        <div className="bg-white rounded-xl p-3 shadow-lg">
-          <div className="grid grid-cols-8 gap-2">
+        <div className="bg-white rounded-xl p-2 shadow-lg flex-shrink-0">
+          <div className="grid grid-cols-8 gap-1 sm:gap-2">
             {[2, 3, 4, 5, 6, 7, 8, 9].map(num => {
               const count = balls[num] || 0;
+              const color = getMonsterColor(num);
               return (
                 <button 
                   key={num}
-                  className={`relative aspect-square rounded-xl font-bold text-xl transition transform ${
+                  ref={el => buttonRefs.current[num] = el}
+                  className={`relative aspect-square rounded-xl font-bold text-lg sm:text-xl transition transform ${
                     count > 0 
-                      ? 'bg-gradient-to-br from-yellow-400 to-orange-500 text-white shadow-lg hover:scale-110 active:scale-95' 
+                      ? 'shadow-lg hover:scale-110 active:scale-95 text-white' 
                       : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                   }`}
+                  style={count > 0 ? {
+                    background: color.rgb,
+                    backgroundImage: color.pattern,
+                    backgroundSize: color.pattern.includes('radial') ? '6px 6px' : 
+                                   color.pattern.includes('conic') ? '6px 6px' : 'auto'
+                  } : {}}
                   onClick={() => throwBall(num)}
                   disabled={count === 0}
                 >
                   {num}
                   {count > 0 && (
-                    <div className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shadow-lg">
+                    <div className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center text-xs font-bold shadow-lg">
                       {count}
                     </div>
                   )}
@@ -563,8 +646,44 @@ const DivisionMonsterGame = () => {
           </div>
         </div>
       </div>
+      
+      <style>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        @keyframes fragment-bounce {
+          0% {
+            left: var(--start-x);
+            top: var(--start-y);
+            transform: translate(-50%, -50%) scale(1) rotate(0deg);
+            opacity: 1;
+          }
+          40% {
+            left: var(--mid-x);
+            top: var(--mid-y);
+            transform: translate(-50%, -50%) scale(0.9) rotate(360deg);
+            opacity: 1;
+          }
+          100% {
+            left: var(--target-x);
+            top: var(--target-y);
+            transform: translate(-50%, -50%) scale(0.3) rotate(1080deg);
+            opacity: 0;
+          }
+        }
+        @keyframes explode {
+          0% { transform: scale(0.5); opacity: 1; }
+          50% { transform: scale(1.5); opacity: 0.8; }
+          100% { transform: scale(2); opacity: 0; }
+        }
+        @keyframes vanish {
+          0% { transform: scale(1) rotate(0deg); opacity: 1; }
+          100% { transform: scale(2) rotate(360deg); opacity: 0; }
+        }
+      `}</style>
     </div>
   );
 };
 
-ReactDOM.render(<DivisionMonsterGame />, document.getElementById('root'));
+export default DivisionMonsterGame;
