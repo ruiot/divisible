@@ -1,12 +1,12 @@
 // Divisible Game v0.1.1
 
 // アーティファクト用（game.jsにコミット時は下の行をコメントアウト）
-// import React, { useState, useEffect, useRef } from 'react’;
+// import React, { useState, useEffect, useRef } from 'react';
 // ブラウザ環境用（game.jsにコミット時は上の行をコメントアウトし、下の行のコメントを外す）
 const { useState, useEffect, useRef } = React;
 
 const DivisionMonsterGame = () => {
-const [gameState, setGameState] = useState('menu’);
+const [gameState, setGameState] = useState('menu');
 const [monsters, setMonsters] = useState([]);
 const [balls, setBalls] = useState({});
 const [score, setScore] = useState(0);
@@ -24,7 +24,7 @@ const boomerangIntervalRef = useRef(null);
 const processedMonstersRef = useRef(new Set());
 const buttonRefs = useRef({});
 
-const VERSION = 'v0.1.1’;
+const VERSION = 'v0.1.1';
 
 const validNumbers = [
 4, 6, 8, 9, 10, 12, 14, 15, 16, 18, 20, 21, 24, 25, 27, 28, 30, 32, 35, 36, 40, 42, 45, 48, 49, 50, 54, 56, 60, 63, 64, 70, 72, 75, 80, 81, 84, 90, 96, 98, 100
@@ -163,7 +163,7 @@ setBoomerang(null);
 setMonstersDefeated(0);
 setInvaderDirection(1);
 setInvaderMoveCount(0);
-setGameState('playing’);
+setGameState('playing');
 
 startWave(1);
 };
@@ -197,7 +197,7 @@ setInvaderMoveCount(0);
 };
 
 useEffect(() => {
-if (gameState !== 'playing’ || monsters.length === 0) return;
+if (gameState !== 'playing' || monsters.length === 0) return;
 
 const interval = setInterval(() => {
   setMonsters(prev => {
@@ -227,16 +227,16 @@ return () => clearInterval(interval);
 }, [gameState, monsters.length, invaderMoveCount, invaderDirection]);
 
 useEffect(() => {
-if (gameState === 'playing’) {
+if (gameState === 'playing') {
 const anyTooLow = monsters.some(m => m.y > 80);
 if (anyTooLow || (turnsLeft <= 0 && monsters.length > 0 && !boomerang)) {
-setGameState('gameOver’);
+setGameState('gameOver');
 }
 }
 }, [monsters, turnsLeft, gameState, boomerang]);
 
 useEffect(() => {
-if (gameState === 'playing’ && monsters.length === 0 && !boomerang) {
+if (gameState === 'playing' && monsters.length === 0 && !boomerang) {
 setTimeout(() => {
 setWave(w => w + 1);
 startWave(wave + 1);
@@ -418,7 +418,7 @@ setTimeout(() => {
 
 const addAnimation = (type, x, y, number = 0) => {
 const id = Date.now() + Math.random();
-setAnimations(prev => […prev, { id, type, x, y, number }]);
+setAnimations(prev => [...prev, { id, type, x, y, number }]);
 setTimeout(() => {
 setAnimations(prev => prev.filter(a => a.id !== id));
 }, 800);
@@ -432,7 +432,7 @@ clearInterval(boomerangIntervalRef.current);
 };
 }, []);
 
-if (gameState === 'menu’) {
+if (gameState === 'menu') {
 return (
 <div className="min-h-screen bg-gradient-to-b from-blue-400 to-purple-500 flex items-center justify-center p-4">
 <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl">
@@ -458,7 +458,7 @@ Divisible
 );
 }
 
-if (gameState === 'gameOver’) {
+if (gameState === 'gameOver') {
 return (
 <div className="min-h-screen bg-gradient-to-b from-gray-400 to-gray-600 flex items-center justify-center p-4">
 <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl text-center">
