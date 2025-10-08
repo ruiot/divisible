@@ -50,6 +50,13 @@
   <script>eruda.init();</script>
   <!-- Divisible Game v0.0.1 -->
   <div id="root"></div>
-  <script type="text/babel" src="game.js?v=0.1.0"></script>
+  // <script type="text/babel" src="game.js?v=0.1.0"></script>
+  <script>
+    // Add auto cache-busting with timestamp query parameter for game.js
+    const script = document.createElement('script');
+    script.type = 'text/babel';
+    script.src = `game.js?t=${Date.now()}`;
+    document.body.appendChild(script);
+  </script>
 </body>
 </html>
