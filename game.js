@@ -686,4 +686,6 @@ const DivisionMonsterGame = () => {
   );
 };
 
-export default DivisionMonsterGame;
+// Fix: Replace export with ReactDOM.render for browser compatibility
+// export default DivisionMonsterGame;
+ReactDOM.render(<DivisionMonsterGame />, document.getElementById('root'));
