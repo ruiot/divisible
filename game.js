@@ -1,7 +1,4 @@
-// Divisible Game v0.1.19
-// 変更点:
-// - フラグメントを同時出現に変更（個数が数えやすく）
-// - ブーメランの光エフェクトを強化（フラグメントと区別しやすく）
+// Divisible Game v0.1.1
 
 // アーティファクト用（game.jsにコミット時は下の行をコメントアウト）
 // import React, { useState, useEffect, useRef } from 'react';
@@ -27,7 +24,7 @@ const boomerangIntervalRef = useRef(null);
 const processedMonstersRef = useRef(new Set());
 const buttonRefs = useRef({});
 
-const VERSION = 'v0.1.19';
+const VERSION = 'v0.1.1';
 
 const validNumbers = [
 4, 6, 8, 9, 10, 12, 14, 15, 16, 18, 20, 21, 24, 25, 27, 28, 30, 32, 35, 36, 40, 42, 45, 48, 49, 50, 54, 56, 60, 63, 64, 70, 72, 75, 80, 81, 84, 90, 96, 98, 100
@@ -85,7 +82,6 @@ if (type === 'invader') {
   osc.start(ctx.currentTime);
   osc.stop(ctx.currentTime + 0.1);
 }
-
 };
 
 const getFactors = (num) => {
@@ -100,21 +96,6 @@ const factors = { 2: 0, 3: 0, 5: 0, 7: 0 };
 });
 
 return factors;
-
-};
-
-const getDicePattern = (count) => {
-const patterns = {
-2: [{x: -1, y: 0}, {x: 1, y: 0}],
-3: [{x: 0, y: -1}, {x: -1, y: 1}, {x: 1, y: 1}],
-4: [{x: -1, y: -1}, {x: 1, y: -1}, {x: -1, y: 1}, {x: 1, y: 1}],
-5: [{x: -1, y: -1}, {x: 1, y: -1}, {x: 0, y: 0}, {x: -1, y: 1}, {x: 1, y: 1}],
-6: [{x: -1, y: -1.5}, {x: -1, y: 0}, {x: -1, y: 1.5}, {x: 1, y: -1.5}, {x: 1, y: 0}, {x: 1, y: 1.5}],
-7: [{x: -1, y: -1}, {x: 0, y: -1}, {x: 1, y: -1}, {x: -1, y: 1}, {x: 0, y: 1}, {x: 1, y: 1}, {x: 0, y: 0}],
-8: [{x: -1, y: -1.5}, {x: -1, y: -0.5}, {x: -1, y: 0.5}, {x: -1, y: 1.5}, {x: 1, y: -1.5}, {x: 1, y: -0.5}, {x: 1, y: 0.5}, {x: 1, y: 1.5}],
-9: [{x: -1, y: -1}, {x: 0, y: -1}, {x: 1, y: -1}, {x: -1, y: 0}, {x: 0, y: 0}, {x: 1, y: 0}, {x: -1, y: 1}, {x: 0, y: 1}, {x: 1, y: 1}]
-};
-return patterns[count] || [];
 };
 
 const getPattern = (factors) => {
@@ -134,7 +115,6 @@ if (factors[7] > 0) {
 }
 
 return patterns.length > 0 ? patterns.join(', ') : 'none';
-
 };
 
 const getMonsterColor = (num) => {
@@ -151,7 +131,14 @@ return {
   rgb: `rgb(${r}, ${g}, ${b})`,
   pattern: getPattern(factors)
 };
+};
 
+const calculateScore = (ballsObj) => {
+let sum = 0;
+for (const [num, count] of Object.entries(ballsObj)) {
+sum += Math.pow(parseInt(num), count);
+}
+return sum;
 };
 
 const getWaveMonsters = (waveNum) => {
@@ -162,13 +149,13 @@ return validNumbers
   .slice(startIdx % validNumbers.length, (startIdx + baseCount) % validNumbers.length)
   .concat(validNumbers.slice(0, Math.max(0, baseCount - validNumbers.length + startIdx)))
   .slice(0, baseCount);
-
 };
 
 const startGame = () => {
 initAudio();
-setBalls({2: 2, 3: 2, 4: 2});
-setScore(0);
+const initialBalls = {2: 2, 3: 2, 4: 2};
+setBalls(initialBalls);
+setScore(calculateScore(initialBalls));
 setWave(1);
 setAnimations([]);
 setNextMonsterId(1);
@@ -179,7 +166,6 @@ setInvaderMoveCount(0);
 setGameState('playing');
 
 startWave(1);
-
 };
 
 const startWave = (waveNum) => {
@@ -208,7 +194,6 @@ setNextMonsterId(nextMonsterId + waveMonsters.length);
 setTurnsLeft(8 + Math.floor(waveNum / 2));
 setInvaderDirection(1);
 setInvaderMoveCount(0);
-
 };
 
 useEffect(() => {
@@ -239,7 +224,6 @@ const interval = setInterval(() => {
 }, 500);
 
 return () => clearInterval(interval);
-
 }, [gameState, monsters.length, invaderMoveCount, invaderDirection]);
 
 useEffect(() => {
@@ -274,7 +258,6 @@ return {
   x: ((rect.left + rect.width / 2 - parentRect.left) / parentRect.width) * 100,
   y: ((rect.top + rect.height / 2 - parentRect.top) / parentRect.height) * 100
 };
-
 };
 
 const throwBall = (ballNum) => {
@@ -284,6 +267,7 @@ if (boomerang) return;
 const newBalls = {...balls, [ballNum]: balls[ballNum] - 1};
 if (newBalls[ballNum] === 0) delete newBalls[ballNum];
 setBalls(newBalls);
+setScore(calculateScore(newBalls));
 setTurnsLeft(t => t - 1);
 
 playSound('throw');
@@ -347,7 +331,6 @@ if (targets.length === 0) {
   
   moveToNextTarget();
 }
-
 };
 
 const processHit = (targetMonster, ballNum) => {
@@ -362,58 +345,51 @@ setTimeout(() => {
   if (result >= 2 && result <= 9) {
     const buttonPos = getButtonPosition(result);
     
-    // サイコロ/麻雀風の配置パターンを取得
-    const pattern = getDicePattern(count);
-    const spacing = 15;  // 適度な広がり
-    
-    // 全破片を配列に格納
-    const newFragments = [];
     for (let i = 0; i < count; i++) {
-      const pos = pattern[i] || {x: 0, y: 0};
-      const midX = targetMonster.x + pos.x * spacing;
-      const midY = targetMonster.y + pos.y * spacing;
+      const angle = (Math.PI * 2 * i) / count + Math.random() * 0.3;
+      const distance = 8 + Math.random() * 6;
+      const midX = targetMonster.x + Math.cos(angle) * distance;
+      const midY = targetMonster.y + Math.sin(angle) * distance;
       
       const spreadAngle = (Math.PI * 2 * i) / count;
-      const spreadRadius = 8;
+      const spreadRadius = 2;
       const offsetX = Math.cos(spreadAngle) * spreadRadius;
       const offsetY = Math.sin(spreadAngle) * spreadRadius;
       
-      newFragments.push({
-        id: `fragment-${Date.now()}-${i}`,
-        type: 'fragment',
-        x: targetMonster.x,
-        y: targetMonster.y,
-        number: result,
-        midX: midX,
-        midY: midY,
-        targetX: buttonPos ? buttonPos.x + offsetX : 12.5 + (result - 2) * 12.5,
-        targetY: buttonPos ? buttonPos.y + offsetY : 95
-      });
+      setTimeout(() => {
+        const animId = Date.now() + Math.random() + i;
+        setAnimations(prev => [...prev, {
+          id: animId,
+          type: 'fragment',
+          x: targetMonster.x,
+          y: targetMonster.y,
+          number: result,
+          midX: midX,
+          midY: midY,
+          targetX: buttonPos ? buttonPos.x + offsetX : 12.5 + (result - 2) * 12.5,
+          targetY: buttonPos ? buttonPos.y + offsetY : 95
+        }]);
+        
+        setTimeout(() => {
+          setAnimations(prev => prev.filter(a => a.id !== animId));
+        }, 1600);
+      }, i * 80);
     }
-    
-    // 1回で全部追加
-    setAnimations(prev => [...prev, ...newFragments]);
-    
-    // 2秒後に全破片を削除
-    setTimeout(() => {
-      const fragmentIds = newFragments.map(f => f.id);
-      setAnimations(prev => prev.filter(a => !fragmentIds.includes(a.id)));
-    }, 2000);
 
     setTimeout(() => {
       playSound('catch');
-      setBalls(prev => ({
-        ...prev,
-        [result]: (prev[result] || 0) + count
-      }));
-      setScore(s => s + targetMonster.number);
+      const updatedBalls = {
+        ...balls,
+        [result]: (balls[result] || 0) + count
+      };
+      setBalls(updatedBalls);
+      setScore(calculateScore(updatedBalls));
       setMonstersDefeated(d => d + 1);
     }, 1200);
     
   } else if (result === 1) {
     playSound('vanish');
     addAnimation('vanish', targetMonster.x, targetMonster.y);
-    setScore(s => s + targetMonster.number);
     setMonstersDefeated(d => d + 1);
   } else {
     const newMonsters = [];
@@ -438,7 +414,6 @@ setTimeout(() => {
     setNextMonsterId(n => n + count);
   }
 }, 200);
-
 };
 
 const addAnimation = (type, x, y, number = 0) => {
@@ -465,14 +440,15 @@ return (
 Divisible
 </h1>
 <p className="text-center mb-8 text-gray-600">
-Divide the Conqueror
+迫る敵を因数分解！<br/>
+大きい数で割るほど高得点！
 </p>
 
       <button
         onClick={startGame}
         className="w-full bg-gradient-to-r from-green-400 to-blue-500 text-white py-6 rounded-xl font-bold text-2xl hover:from-green-500 hover:to-blue-600 transition transform hover:scale-105 shadow-lg"
       >
-        Start
+        スタート
       </button>
       <div className="mt-4 text-center text-xs text-gray-400">
         {VERSION}
@@ -480,36 +456,34 @@ Divide the Conqueror
     </div>
   </div>
 );
-
 }
 
 if (gameState === 'gameOver') {
 return (
 <div className="min-h-screen bg-gradient-to-b from-gray-400 to-gray-600 flex items-center justify-center p-4">
 <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl text-center">
-<h2 className="text-4xl font-bold mb-4 text-gray-700">Game Over</h2>
-<p className="text-2xl mb-2">Wave: {wave}</p>
-<p className="text-2xl mb-2">Score: {score}</p>
-<p className="text-xl mb-6">Defeated: {monstersDefeated}</p>
+<h2 className="text-4xl font-bold mb-4 text-gray-700">ゲームオーバー</h2>
+<p className="text-2xl mb-2">ウェーブ: {wave}</p>
+<p className="text-2xl mb-2">スコア: {score}</p>
+<p className="text-xl mb-6">たおした数: {monstersDefeated}</p>
 
       <div className="space-y-3">
         <button
           onClick={startGame}
           className="w-full bg-gradient-to-r from-blue-400 to-purple-500 text-white py-4 rounded-xl font-bold text-lg hover:from-blue-500 hover:to-purple-600 transition"
         >
-          Play Again
+          もういちど
         </button>
         <button
           onClick={() => setGameState('menu')}
           className="w-full bg-gray-300 text-gray-700 py-4 rounded-xl font-bold text-lg hover:bg-gray-400 transition"
         >
-          Back to Menu
+          メニューにもどる
         </button>
       </div>
     </div>
   </div>
 );
-
 }
 
 return (
@@ -519,9 +493,9 @@ return (
 <div className="flex justify-between items-center text-xs sm:text-sm">
 <div className="font-bold text-purple-600">Wave {wave}</div>
 <div className="flex gap-2 sm:gap-4">
-<div className="text-blue-600 font-bold">Score: {score}</div>
+<div className="text-blue-600 font-bold">スコア: {score}</div>
 <div className={`font-bold ${turnsLeft <= 3 ? 'text-red-600' : 'text-green-600'}`}>
-Turns: {turnsLeft}
+ターン: {turnsLeft}
 </div>
 </div>
 </div>
@@ -571,7 +545,7 @@ Turns: {turnsLeft}
           }}
         >
           <div className="relative">
-            <div className="absolute inset-0 bg-yellow-300 rounded-full blur-2xl opacity-80 animate-pulse"></div>
+            <div className="absolute inset-0 bg-yellow-300 rounded-full blur-xl opacity-60 animate-pulse"></div>
             <div className="relative rounded-full flex items-center justify-center text-white font-bold shadow-2xl"
               style={{ 
                 width: '40px',
@@ -590,20 +564,34 @@ Turns: {turnsLeft}
         </div>
       )}
 
-      {animations.map(anim => {
-        if (anim.type === 'fragment') {
-          return (
-            <div
-              key={anim.id}
-              className="absolute pointer-events-none z-20 rounded-full flex items-center justify-center text-white font-bold shadow-xl"
+      {animations.map(anim => (
+        <div
+          key={anim.id}
+          className="absolute pointer-events-none z-20"
+          style={{
+            left: `${anim.x}%`,
+            top: `${anim.y}%`,
+            transform: 'translate(-50%, -50%)'
+          }}
+        >
+          {anim.type === 'explode' && (
+            <div className="text-3xl sm:text-5xl" style={{animation: 'explode 0.8s ease-out'}}>
+              💥
+            </div>
+          )}
+          {anim.type === 'vanish' && (
+            <div className="text-2xl sm:text-4xl" style={{animation: 'vanish 0.8s ease-out'}}>
+              ✨
+            </div>
+          )}
+          {anim.type === 'fragment' && (
+            <div 
+              className="rounded-full flex items-center justify-center text-white font-bold shadow-xl"
               style={{
-                left: `${anim.x}%`,
-                top: `${anim.y}%`,
-                transform: 'translate(-50%, -50%)',
                 width: '30px',
                 height: '30px',
                 fontSize: '16px',
-                animation: 'cell-division 2s ease-in-out forwards',
+                animation: 'fragment-bounce 1.6s ease-out forwards',
                 '--start-x': `${anim.x}%`,
                 '--start-y': `${anim.y}%`,
                 '--mid-x': `${anim.midX}%`,
@@ -614,36 +602,13 @@ Turns: {turnsLeft}
                 backgroundImage: getMonsterColor(anim.number).pattern,
                 backgroundSize: getMonsterColor(anim.number).pattern.includes('radial') ? '6px 6px' : 
                                getMonsterColor(anim.number).pattern.includes('conic') ? '6px 6px' : 'auto'
-              } as any}
+              }}
             >
               {anim.number}
             </div>
-          );
-        } else {
-          return (
-            <div
-              key={anim.id}
-              className="absolute pointer-events-none z-20"
-              style={{
-                left: `${anim.x}%`,
-                top: `${anim.y}%`,
-                transform: 'translate(-50%, -50%)'
-              }}
-            >
-              {anim.type === 'explode' && (
-                <div className="text-3xl sm:text-5xl" style={{animation: 'explode 0.8s ease-out'}}>
-                  💥
-                </div>
-              )}
-              {anim.type === 'vanish' && (
-                <div className="text-2xl sm:text-4xl" style={{animation: 'vanish 0.8s ease-out'}}>
-                  ✨
-                </div>
-              )}
-            </div>
-          );
-        }
-      })}
+          )}
+        </div>
+      ))}
       
       <div className="absolute bottom-2 right-2 text-xs text-gray-500 opacity-50">
         {VERSION}
@@ -691,29 +656,23 @@ Turns: {turnsLeft}
       from { transform: rotate(0deg); }
       to { transform: rotate(360deg); }
     }
-    @keyframes cell-division {
+    @keyframes fragment-bounce {
       0% {
         left: var(--start-x);
         top: var(--start-y);
         transform: translate(-50%, -50%) scale(1) rotate(0deg);
         opacity: 1;
       }
-      25% {
+      40% {
         left: var(--mid-x);
         top: var(--mid-y);
-        transform: translate(-50%, -50%) scale(0.95) rotate(90deg);
-        opacity: 1;
-      }
-      50% {
-        left: var(--mid-x);
-        top: var(--mid-y);
-        transform: translate(-50%, -50%) scale(0.9) rotate(180deg);
+        transform: translate(-50%, -50%) scale(0.9) rotate(360deg);
         opacity: 1;
       }
       100% {
         left: var(--target-x);
         top: var(--target-y);
-        transform: translate(-50%, -50%) scale(0.3) rotate(720deg);
+        transform: translate(-50%, -50%) scale(0.3) rotate(1080deg);
         opacity: 0;
       }
     }
@@ -728,7 +687,6 @@ Turns: {turnsLeft}
     }
   `}</style>
 </div>
-
 );
 };
 
