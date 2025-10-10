@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
@@ -15,29 +14,11 @@
 </head>
 <body>
   <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-  <script>eruda.init();
-    console.log('1: Eruda loaded');
-  </script>
-    <!-- Divisible Game -->
-  <div id="root"></div>
-  <script>console.log('2: Before React check');</script>
-  <script>console.log('3: React =', typeof React);</script>
-  <script>console.log('4: ReactDOM =', typeof ReactDOM);</script>
-  <script>console.log('5: Babel =', typeof Babel);</script>
+  <script>eruda.init();</script>
   
-  <!-- キャッシュバスティング付き動的読み込み（Babel読み込み後） -->
-
-  <script>
-    // Babelが完全に読み込まれるまで待つ
-    window.addEventListener('load', () => {
-      const script = document.createElement('script');
-      script.type = 'text/babel';
-      script.src = `game.js?t=${Date.now()}`;
-      document.body.appendChild(script);
-    });
-  </script>
-  <script type="text/babel">
-    console.log('6: Inside Babel script');
-  </script>
+  <div id="root"></div>
+  
+  <!-- 静的に配置（Babelが認識する） -->
+  <script type="text/babel" src="game.js"></script>
 </body>
 </html>
