@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
@@ -10,39 +11,6 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     body { margin: 0; overflow: hidden; }
-    @keyframes spin {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
-    }
-    @keyframes fragment-bounce {
-      0% {
-        left: var(--start-x);
-        top: var(--start-y);
-        transform: translate(-50%, -50%) scale(1) rotate(0deg);
-        opacity: 1;
-      }
-      40% {
-        left: var(--mid-x);
-        top: var(--mid-y);
-        transform: translate(-50%, -50%) scale(0.9) rotate(360deg);
-        opacity: 1;
-      }
-      100% {
-        left: var(--target-x);
-        top: var(--target-y);
-        transform: translate(-50%, -50%) scale(0.3) rotate(1080deg);
-        opacity: 0;
-      }
-    }
-    @keyframes explode {
-      0% { transform: scale(0.5); opacity: 1; }
-      50% { transform: scale(1.5); opacity: 0.8; }
-      100% { transform: scale(2); opacity: 0; }
-    }
-    @keyframes vanish {
-      0% { transform: scale(1) rotate(0deg); opacity: 1; }
-      100% { transform: scale(2) rotate(360deg); opacity: 0; }
-    }
   </style>
 </head>
 <body>
@@ -50,13 +18,18 @@
   <script>eruda.init();</script>
   <!-- Divisible Game -->
   <div id="root"></div>
-  <!-- <script type="text/babel" src="game.js"></script> -->
+
+  <!-- キャッシュバスティング付き動的読み込み（Babel読み込み後） -->
+
   <script>
-    // Add auto cache-busting with timestamp query parameter for game.js
-    const script = document.createElement('script');
-    script.type = 'text/babel';
-    script.src = `game.js?t=${Date.now()}`;
-    document.body.appendChild(script);
+    // Babelが完全に読み込まれるまで待つ
+    window.addEventListener('load', () => {
+      const script = document.createElement('script');
+      script.type = 'text/babel';
+      script.src = `game.js?t=${Date.now()}`;
+      document.body.appendChild(script);
+    });
   </script>
+
 </body>
 </html>
