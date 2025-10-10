@@ -16,9 +16,14 @@
 <body>
   <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
   <script>eruda.init();</script>
-  <!-- Divisible Game -->
+    console.log('1: Eruda loaded');
+    <!-- Divisible Game -->
   <div id="root"></div>
-
+  <script>console.log('2: Before React check');</script>
+  <script>console.log('3: React =', typeof React);</script>
+  <script>console.log('4: ReactDOM =', typeof ReactDOM);</script>
+  <script>console.log('5: Babel =', typeof Babel);</script>
+  
   <!-- キャッシュバスティング付き動的読み込み（Babel読み込み後） -->
 
   <script>
@@ -30,6 +35,8 @@
       document.body.appendChild(script);
     });
   </script>
-
+  <script type="text/babel">
+    console.log('6: Inside Babel script');
+  </script>
 </body>
 </html>
