@@ -1,4 +1,3 @@
-console.log('game.js loaded!');
 // Divisible Game v0.1.19
 // 変更点:
 // - フラグメントを同時出現に変更（個数が数えやすく）
@@ -735,6 +734,6 @@ Turns: {turnsLeft}
 
 // ブラウザ環境（game.js）用（game.jsにコミット時は下の行のコメントを外す）
 ReactDOM.render(<DivisionMonsterGame />, document.getElementById('root'));
+
 // アーティファクト用（game.jsにコミット時は下の行をコメントアウト）
 // export default DivisionMonsterGame;
-console.log('ReactDOM.render called!');
