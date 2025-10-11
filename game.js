@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 
+// v0.2.1 - Cell division animation with fixed geometric patterns
+
 const DivisionMonsterGame = () => {
   const [gameState, setGameState] = useState('menu');
   const [monsters, setMonsters] = useState([]);
@@ -19,7 +21,7 @@ const DivisionMonsterGame = () => {
   const processedMonstersRef = useRef(new Set());
   const buttonRefs = useRef({});
 
-  const VERSION = 'v0.2.0';
+  const VERSION = 'v0.2.1';
 
   const validNumbers = [
     4, 6, 8, 9, 10, 12, 14, 15, 16, 18, 20, 21, 24, 25, 27, 28, 30, 32, 35, 36, 40, 42, 45, 48, 49, 50, 54, 56, 60, 63, 64, 70, 72, 75, 80, 81, 84, 90, 96, 98, 100
@@ -91,6 +93,20 @@ const DivisionMonsterGame = () => {
     });
     
     return factors;
+  };
+
+  const getGeometricPattern = (count) => {
+    const patterns = {
+      2: [{x: -1, y: -1}, {x: 1, y: -1}],
+      3: [{x: 0, y: -1}, {x: -1, y: 1}, {x: 1, y: 1}],
+      4: [{x: -1, y: -1}, {x: 1, y: -1}, {x: -1, y: 1}, {x: 1, y: 1}],
+      5: [{x: -1, y: -1}, {x: 1, y: -1}, {x: 0, y: 0}, {x: -1, y: 1}, {x: 1, y: 1}],
+      6: [{x: -1, y: -1.5}, {x: -1, y: 0}, {x: -1, y: 1.5}, {x: 1, y: -1.5}, {x: 1, y: 0}, {x: 1, y: 1.5}],
+      7: [{x: -1, y: -1}, {x: 0, y: -1}, {x: 1, y: -1}, {x: -1, y: 1}, {x: 0, y: 1}, {x: 1, y: 1}, {x: 0, y: 0}],
+      8: [{x: -1, y: -1.5}, {x: -1, y: -0.5}, {x: -1, y: 0.5}, {x: -1, y: 1.5}, {x: 1, y: -1.5}, {x: 1, y: -0.5}, {x: 1, y: 0.5}, {x: 1, y: 1.5}],
+      9: [{x: -1, y: -1}, {x: 0, y: -1}, {x: 1, y: -1}, {x: -1, y: 0}, {x: 0, y: 0}, {x: 1, y: 0}, {x: -1, y: 1}, {x: 0, y: 1}, {x: 1, y: 1}]
+    };
+    return patterns[count] || [];
   };
 
   const getPattern = (factors) => {
@@ -330,31 +346,34 @@ const DivisionMonsterGame = () => {
       if (result >= 2 && result <= 9) {
         const buttonPos = getButtonPosition(result);
         
+        const pattern = getGeometricPattern(count);
+        const spacing = 15;
+        
+        const newFragments = [];
         for (let i = 0; i < count; i++) {
-          const angle = (Math.PI * 2 * i) / count + Math.random() * 0.3;
-          const distance = 8 + Math.random() * 6;
-          const midX = targetMonster.x + Math.cos(angle) * distance;
-          const midY = targetMonster.y + Math.sin(angle) * distance;
+          const pos = pattern[i] || {x: 0, y: 0};
+          const midX = targetMonster.x + pos.x * spacing;
+          const midY = targetMonster.y + pos.y * spacing;
           
-          setTimeout(() => {
-            const animId = Date.now() + Math.random() + i;
-            setAnimations(prev => [...prev, {
-              id: animId,
-              type: 'fragment',
-              x: targetMonster.x,
-              y: targetMonster.y,
-              number: result,
-              midX: midX,
-              midY: midY,
-              targetX: buttonPos ? buttonPos.x : 12.5 + (result - 2) * 12.5,
-              targetY: buttonPos ? buttonPos.y : 95
-            }]);
-            
-            setTimeout(() => {
-              setAnimations(prev => prev.filter(a => a.id !== animId));
-            }, 1600);
-          }, i * 80);
+          newFragments.push({
+            id: `fragment-${Date.now()}-${i}`,
+            type: 'fragment',
+            x: targetMonster.x,
+            y: targetMonster.y,
+            number: result,
+            midX: midX,
+            midY: midY,
+            targetX: buttonPos ? buttonPos.x : 12.5 + (result - 2) * 12.5,
+            targetY: buttonPos ? buttonPos.y : 95
+          });
         }
+        
+        setAnimations(prev => [...prev, ...newFragments]);
+        
+        setTimeout(() => {
+          const fragmentIds = newFragments.map(f => f.id);
+          setAnimations(prev => prev.filter(a => !fragmentIds.includes(a.id)));
+        }, 2000);
 
         setTimeout(() => {
           playSound('catch');
@@ -543,47 +562,60 @@ const DivisionMonsterGame = () => {
             </div>
           )}
 
-          {animations.map(anim => (
-            <div
-              key={anim.id}
-              className="absolute pointer-events-none z-20"
-              style={{
-                left: `${anim.x}%`,
-                top: `${anim.y}%`,
-                transform: 'translate(-50%, -50%)'
-              }}
-            >
-              {anim.type === 'explode' && (
-                <div className="text-3xl sm:text-5xl" style={{animation: 'explode 0.8s ease-out'}}>
-                  💥
-                </div>
-              )}
-              {anim.type === 'vanish' && (
-                <div className="text-2xl sm:text-4xl" style={{animation: 'vanish 0.8s ease-out'}}>
-                  ✨
-                </div>
-              )}
-              {anim.type === 'fragment' && (
-                <div 
-                  className="bg-gradient-to-br from-blue-400 to-cyan-500 rounded-full flex items-center justify-center text-white font-bold shadow-xl"
+          {animations.map(anim => {
+            if (anim.type === 'fragment') {
+              return (
+                <div
+                  key={anim.id}
+                  className="absolute pointer-events-none z-20 rounded-full flex items-center justify-center text-white font-bold shadow-xl"
                   style={{
-                    width: '35px',
-                    height: '35px',
-                    fontSize: '18px',
-                    animation: 'fragment-bounce 1.6s ease-out forwards',
+                    left: `${anim.x}%`,
+                    top: `${anim.y}%`,
+                    transform: 'translate(-50%, -50%)',
+                    width: '30px',
+                    height: '30px',
+                    fontSize: '16px',
+                    animation: 'cell-division 2s ease-in-out forwards',
                     '--start-x': `${anim.x}%`,
                     '--start-y': `${anim.y}%`,
                     '--mid-x': `${anim.midX}%`,
                     '--mid-y': `${anim.midY}%`,
                     '--target-x': `${anim.targetX}%`,
-                    '--target-y': `${anim.targetY}%`
+                    '--target-y': `${anim.targetY}%`,
+                    background: getMonsterColor(anim.number).rgb,
+                    backgroundImage: getMonsterColor(anim.number).pattern,
+                    backgroundSize: getMonsterColor(anim.number).pattern.includes('radial') ? '6px 6px' : 
+                                   getMonsterColor(anim.number).pattern.includes('conic') ? '6px 6px' : 'auto'
                   }}
                 >
                   {anim.number}
                 </div>
-              )}
-            </div>
-          ))}
+              );
+            } else {
+              return (
+                <div
+                  key={anim.id}
+                  className="absolute pointer-events-none z-20"
+                  style={{
+                    left: `${anim.x}%`,
+                    top: `${anim.y}%`,
+                    transform: 'translate(-50%, -50%)'
+                  }}
+                >
+                  {anim.type === 'explode' && (
+                    <div className="text-3xl sm:text-5xl" style={{animation: 'explode 0.8s ease-out'}}>
+                      💥
+                    </div>
+                  )}
+                  {anim.type === 'vanish' && (
+                    <div className="text-2xl sm:text-4xl" style={{animation: 'vanish 0.8s ease-out'}}>
+                      ✨
+                    </div>
+                  )}
+                </div>
+              );
+            }
+          })}
           
           <div className="absolute bottom-2 right-2 text-xs text-gray-500 opacity-50">
             {VERSION}
@@ -631,23 +663,29 @@ const DivisionMonsterGame = () => {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
         }
-        @keyframes fragment-bounce {
+        @keyframes cell-division {
           0% {
             left: var(--start-x);
             top: var(--start-y);
             transform: translate(-50%, -50%) scale(1) rotate(0deg);
             opacity: 1;
           }
-          40% {
+          25% {
             left: var(--mid-x);
             top: var(--mid-y);
-            transform: translate(-50%, -50%) scale(0.9) rotate(360deg);
+            transform: translate(-50%, -50%) scale(0.95) rotate(90deg);
+            opacity: 1;
+          }
+          50% {
+            left: var(--mid-x);
+            top: var(--mid-y);
+            transform: translate(-50%, -50%) scale(0.9) rotate(180deg);
             opacity: 1;
           }
           100% {
             left: var(--target-x);
             top: var(--target-y);
-            transform: translate(-50%, -50%) scale(0.3) rotate(1080deg);
+            transform: translate(-50%, -50%) scale(0.3) rotate(720deg);
             opacity: 0;
           }
         }
