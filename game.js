@@ -244,12 +244,17 @@ const DivisionMonsterGame = () => {
 
   useEffect(() => {
     if (gameState === 'playing' && monsters.length === 0 && !boomerang) {
+      console.log('⚠️ Wave transition triggered', { currentWave: wave, monstersLength: monsters.length });
       setTimeout(() => {
-        setWave(w => w + 1);
-        startWave(wave + 1);
+        setWave(w => {
+          console.log('📊 Wave update:', { from: w, to: w + 1 });
+          const nextWave = w + 1;
+          startWave(nextWave);
+          return nextWave;
+        });
       }, 1500);
     }
-  }, [monsters.length, gameState, boomerang, wave]);
+  }, [monsters.length, gameState, boomerang]);
 
   const getButtonPosition = (num) => {
     const button = buttonRefs.current[num];
@@ -499,8 +504,8 @@ const DivisionMonsterGame = () => {
   }
 
   return (
-    <div className="h-screen bg-gradient-to-b from-blue-300 to-purple-400 p-2 flex flex-col"
-         style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}>
+    <div className="h-screen bg-gradient-to-b from-blue-300 to-purple-400 p-2 pb-4 flex flex-col"
+         style={{ paddingBottom: '1rem' }}>
       <div className="max-w-4xl mx-auto w-full h-full flex flex-col">
         <div className="bg-white rounded-xl p-2 mb-2 shadow-lg flex-shrink-0">
           <div className="flex justify-between items-center text-xs sm:text-sm">
@@ -635,6 +640,12 @@ const DivisionMonsterGame = () => {
           
           <div className="absolute bottom-2 right-2 text-xs text-gray-500 opacity-50">
             {VERSION}
+          </div>
+          
+          <div className="absolute top-2 left-2 text-xs bg-black bg-opacity-70 text-white p-2 font-mono rounded z-30">
+            <div>Wave: {wave}</div>
+            <div>Monsters: {monsters.length}</div>
+            <div>Move Count: {invaderMoveCount}</div>
           </div>
         </div>
 
