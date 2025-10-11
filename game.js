@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-// v0.2.1 - Cell division animation with fixed geometric patterns
+// v0.2.2 - Atomic state update for monster split to prevent ghost rendering
 
 const DivisionMonsterGame = () => {
   const [gameState, setGameState] = useState('menu');
@@ -21,7 +21,7 @@ const DivisionMonsterGame = () => {
   const processedMonstersRef = useRef(new Set());
   const buttonRefs = useRef({});
 
-  const VERSION = 'v0.2.1';
+  const VERSION = 'v0.2.2';
 
   const validNumbers = [
     4, 6, 8, 9, 10, 12, 14, 15, 16, 18, 20, 21, 24, 25, 27, 28, 30, 32, 35, 36, 40, 42, 45, 48, 49, 50, 54, 56, 60, 63, 64, 70, 72, 75, 80, 81, 84, 90, 96, 98, 100
@@ -172,6 +172,9 @@ const DivisionMonsterGame = () => {
 
   const startWave = (waveNum) => {
     setAnimations([]);
+    setMonsters([]);
+    setBoomerang(null);
+    processedMonstersRef.current = new Set();
     
     const waveMonsters = getWaveMonsters(waveNum);
     const cols = Math.min(4, waveMonsters.length);
@@ -199,10 +202,12 @@ const DivisionMonsterGame = () => {
   };
 
   useEffect(() => {
-    if (gameState !== 'playing' || monsters.length === 0) return;
+    if (gameState !== 'playing') return;
 
     const interval = setInterval(() => {
       setMonsters(prev => {
+        if (prev.length === 0) return prev;
+        
         const newMonsters = prev.map(m => ({
           ...m,
           x: m.x + invaderDirection * 2
@@ -226,7 +231,7 @@ const DivisionMonsterGame = () => {
     }, 500);
 
     return () => clearInterval(interval);
-  }, [gameState, monsters.length, invaderMoveCount, invaderDirection]);
+  }, [gameState, invaderMoveCount, invaderDirection]);
 
   useEffect(() => {
     if (gameState === 'playing') {
@@ -244,7 +249,7 @@ const DivisionMonsterGame = () => {
         startWave(wave + 1);
       }, 1500);
     }
-  }, [monsters.length, gameState, boomerang]);
+  }, [monsters.length, gameState, boomerang, wave]);
 
   const getButtonPosition = (num) => {
     const button = buttonRefs.current[num];
@@ -338,14 +343,12 @@ const DivisionMonsterGame = () => {
     const result = targetMonster.number / ballNum;
     const count = ballNum;
 
-    setMonsters(prev => prev.filter(m => m.id !== targetMonster.id));
     playSound('hit');
     addAnimation('explode', targetMonster.x, targetMonster.y);
 
     setTimeout(() => {
       if (result >= 2 && result <= 9) {
         const buttonPos = getButtonPosition(result);
-        
         const pattern = getGeometricPattern(count);
         const spacing = 15;
         
@@ -369,6 +372,7 @@ const DivisionMonsterGame = () => {
         }
         
         setAnimations(prev => [...prev, ...newFragments]);
+        setMonsters(prev => prev.filter(m => m.id !== targetMonster.id));
         
         setTimeout(() => {
           const fragmentIds = newFragments.map(f => f.id);
@@ -386,31 +390,41 @@ const DivisionMonsterGame = () => {
         }, 1200);
         
       } else if (result === 1) {
+        setMonsters(prev => prev.filter(m => m.id !== targetMonster.id));
         playSound('vanish');
         addAnimation('vanish', targetMonster.x, targetMonster.y);
         setScore(s => s + targetMonster.number);
         setMonstersDefeated(d => d + 1);
+        
       } else {
-        const newMonsters = [];
-        
-        for (let i = 0; i < count; i++) {
-          const angle = (Math.PI * 2 * i) / count + Math.random() * 0.5;
-          const distance = 10 + Math.random() * 6;
-          const newX = Math.max(10, Math.min(90, targetMonster.x + Math.cos(angle) * distance));
-          const newY = targetMonster.y + Math.sin(angle) * distance;
+        setNextMonsterId(n => {
+          const newId = n;
           
-          newMonsters.push({
-            id: nextMonsterId + i,
-            number: result,
-            x: newX,
-            y: newY,
-            baseX: newX,
-            baseY: newY
+          setMonsters(prev => {
+            const filtered = prev.filter(m => m.id !== targetMonster.id);
+            
+            const newMonsters = [];
+            for (let i = 0; i < count; i++) {
+              const angle = (Math.PI * 2 * i) / count + Math.random() * 0.5;
+              const distance = 10 + Math.random() * 6;
+              const newX = Math.max(10, Math.min(90, targetMonster.x + Math.cos(angle) * distance));
+              const newY = targetMonster.y + Math.sin(angle) * distance;
+              
+              newMonsters.push({
+                id: newId + i,
+                number: result,
+                x: newX,
+                y: newY,
+                baseX: newX,
+                baseY: newY
+              });
+            }
+            
+            return [...filtered, ...newMonsters];
           });
-        }
-        
-        setMonsters(prev => [...prev, ...newMonsters]);
-        setNextMonsterId(n => n + count);
+          
+          return n + count;
+        });
       }
     }, 200);
   };
@@ -485,7 +499,8 @@ const DivisionMonsterGame = () => {
   }
 
   return (
-    <div className="h-screen bg-gradient-to-b from-blue-300 to-purple-400 p-2 pb-16 flex flex-col">
+    <div className="h-screen bg-gradient-to-b from-blue-300 to-purple-400 p-2 flex flex-col"
+         style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}>
       <div className="max-w-4xl mx-auto w-full h-full flex flex-col">
         <div className="bg-white rounded-xl p-2 mb-2 shadow-lg flex-shrink-0">
           <div className="flex justify-between items-center text-xs sm:text-sm">
@@ -564,6 +579,7 @@ const DivisionMonsterGame = () => {
 
           {animations.map(anim => {
             if (anim.type === 'fragment') {
+              const fragmentColor = getMonsterColor(anim.number);
               return (
                 <div
                   key={anim.id}
@@ -582,10 +598,10 @@ const DivisionMonsterGame = () => {
                     '--mid-y': `${anim.midY}%`,
                     '--target-x': `${anim.targetX}%`,
                     '--target-y': `${anim.targetY}%`,
-                    background: getMonsterColor(anim.number).rgb,
-                    backgroundImage: getMonsterColor(anim.number).pattern,
-                    backgroundSize: getMonsterColor(anim.number).pattern.includes('radial') ? '6px 6px' : 
-                                   getMonsterColor(anim.number).pattern.includes('conic') ? '6px 6px' : 'auto'
+                    background: fragmentColor.rgb,
+                    backgroundImage: fragmentColor.pattern,
+                    backgroundSize: fragmentColor.pattern.includes('radial') ? '6px 6px' : 
+                                   fragmentColor.pattern.includes('conic') ? '6px 6px' : 'auto'
                   }}
                 >
                   {anim.number}
@@ -622,7 +638,7 @@ const DivisionMonsterGame = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-2 shadow-lg flex-shrink-0">
+        <div className="bg-white rounded-xl p-2 shadow-lg flex-shrink-0 mb-2">
           <div className="grid grid-cols-8 gap-1 sm:gap-2">
             {[2, 3, 4, 5, 6, 7, 8, 9].map(num => {
               const count = balls[num] || 0;
