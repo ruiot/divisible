@@ -577,7 +577,7 @@ const DivisionMonsterGame = () => {
                     '--mid-y': `${anim.midY}%`,
                     '--target-x': `${anim.targetX}%`,
                     '--target-y': `${anim.targetY}%`
-                  } as any}
+                  }}
                 >
                   {anim.number}
                 </div>
