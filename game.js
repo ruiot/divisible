@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-// v0.2.2 - Atomic state update for monster split to prevent ghost rendering
+// v0.3.0 - Elementary Mode with progressive waves and boss battle
 
 const DivisionMonsterGame = () => {
   const [gameState, setGameState] = useState('menu');
@@ -11,7 +11,6 @@ const DivisionMonsterGame = () => {
   const [animations, setAnimations] = useState([]);
   const [nextMonsterId, setNextMonsterId] = useState(1);
   const [boomerang, setBoomerang] = useState(null);
-  const [turnsLeft, setTurnsLeft] = useState(10);
   const [monstersDefeated, setMonstersDefeated] = useState(0);
   const [invaderDirection, setInvaderDirection] = useState(1);
   const [invaderMoveCount, setInvaderMoveCount] = useState(0);
@@ -21,10 +20,11 @@ const DivisionMonsterGame = () => {
   const processedMonstersRef = useRef(new Set());
   const buttonRefs = useRef({});
 
-  const VERSION = 'v0.2.2';
+  const VERSION = 'v0.3.0';
 
   const validNumbers = [
-    4, 6, 8, 9, 10, 12, 14, 15, 16, 18, 20, 21, 24, 25, 27, 28, 30, 32, 35, 36, 40, 42, 45, 48, 49, 50, 54, 56, 60, 63, 64, 70, 72, 75, 80, 81, 84, 90, 96, 98, 100
+    4, 6, 8, 9, 10, 12, 14, 15, 16, 18, 20, 21, 24, 25, 27, 28, 30, 32, 35, 36, 
+    40, 42, 45, 48, 49, 50, 54, 56, 60, 63, 64, 70, 72, 80, 81, 90, 100
   ];
 
   const initAudio = () => {
@@ -145,13 +145,26 @@ const DivisionMonsterGame = () => {
   };
 
   const getWaveMonsters = (waveNum) => {
-    const baseCount = Math.min(4 + waveNum, 8);
-    const startIdx = (waveNum - 1) * 3;
+    // Wave 10: Boss battle
+    if (waveNum === 10) {
+      return [362880]; // 9!
+    }
     
-    return validNumbers
-      .slice(startIdx % validNumbers.length, (startIdx + baseCount) % validNumbers.length)
-      .concat(validNumbers.slice(0, Math.max(0, baseCount - validNumbers.length + startIdx)))
-      .slice(0, baseCount);
+    // Wave 11+: Endless mode (random 16-24 enemies from all 37)
+    if (waveNum >= 11) {
+      const shuffled = [...validNumbers].sort(() => Math.random() - 0.5);
+      const count = 16 + Math.floor(Math.random() * 9); // 16-24
+      return shuffled.slice(0, count);
+    }
+    
+    // Wave 1-9: Progressive random from pool
+    const baseCount = 13;
+    const increment = 3;
+    const count = baseCount + (waveNum - 1) * increment;
+    const pool = validNumbers.slice(0, count);
+    const shuffled = [...pool].sort(() => Math.random() - 0.5);
+    
+    return shuffled;
   };
 
   const startGame = () => {
@@ -177,10 +190,12 @@ const DivisionMonsterGame = () => {
     processedMonstersRef.current = new Set();
     
     const waveMonsters = getWaveMonsters(waveNum);
-    const cols = Math.min(4, waveMonsters.length);
-    const rows = Math.ceil(waveMonsters.length / cols);
+    const sortedMonsters = [...waveMonsters].sort((a, b) => b - a); // Descending: large on top, small on bottom
     
-    const newMonsters = waveMonsters.map((num, idx) => {
+    const cols = 8;
+    const rows = Math.ceil(sortedMonsters.length / cols);
+    
+    const newMonsters = sortedMonsters.map((num, idx) => {
       const col = idx % cols;
       const row = Math.floor(idx / cols);
       
@@ -195,14 +210,13 @@ const DivisionMonsterGame = () => {
     });
     
     setMonsters(newMonsters);
-    setNextMonsterId(nextMonsterId + waveMonsters.length);
-    setTurnsLeft(8 + Math.floor(waveNum / 2));
+    setNextMonsterId(nextMonsterId + sortedMonsters.length);
     setInvaderDirection(1);
     setInvaderMoveCount(0);
   };
 
   useEffect(() => {
-    if (gameState !== 'playing') return;
+    if (gameState !== 'playing' || monsters.length === 0) return;
 
     const interval = setInterval(() => {
       setMonsters(prev => {
@@ -222,32 +236,32 @@ const DivisionMonsterGame = () => {
       playSound('invader', frequencies[invaderMoveCount % 9]);
       
       if (invaderMoveCount > 0 && invaderMoveCount % 9 === 0) {
-        setMonsters(prev => prev.map(m => ({
-          ...m,
-          y: m.y + 5
-        })));
+        if (wave !== 10) {
+          setMonsters(prev => prev.map(m => ({
+            ...m,
+            y: m.y + 5
+          })));
+        }
         setInvaderDirection(d => -d);
       }
     }, 500);
 
     return () => clearInterval(interval);
-  }, [gameState, invaderMoveCount, invaderDirection]);
+  }, [gameState, invaderMoveCount, invaderDirection, wave]);
 
   useEffect(() => {
     if (gameState === 'playing') {
-      const anyTooLow = monsters.some(m => m.y > 80);
-      if (anyTooLow || (turnsLeft <= 0 && monsters.length > 0 && !boomerang)) {
+      const anyTooLow = monsters.some(m => m.y > 100);
+      if (anyTooLow) {
         setGameState('gameOver');
       }
     }
-  }, [monsters, turnsLeft, gameState, boomerang]);
+  }, [monsters, gameState, boomerang]);
 
   useEffect(() => {
     if (gameState === 'playing' && monsters.length === 0 && !boomerang) {
-      console.log('⚠️ Wave transition triggered', { currentWave: wave, monstersLength: monsters.length });
       setTimeout(() => {
         setWave(w => {
-          console.log('📊 Wave update:', { from: w, to: w + 1 });
           const nextWave = w + 1;
           startWave(nextWave);
           return nextWave;
@@ -279,7 +293,6 @@ const DivisionMonsterGame = () => {
     const newBalls = {...balls, [ballNum]: balls[ballNum] - 1};
     if (newBalls[ballNum] === 0) delete newBalls[ballNum];
     setBalls(newBalls);
-    setTurnsLeft(t => t - 1);
 
     playSound('throw');
     processedMonstersRef.current = new Set();
@@ -382,7 +395,7 @@ const DivisionMonsterGame = () => {
         setTimeout(() => {
           const fragmentIds = newFragments.map(f => f.id);
           setAnimations(prev => prev.filter(a => !fragmentIds.includes(a.id)));
-        }, 2000);
+        }, 1800);
 
         setTimeout(() => {
           playSound('catch');
@@ -392,7 +405,7 @@ const DivisionMonsterGame = () => {
           }));
           setScore(s => s + targetMonster.number);
           setMonstersDefeated(d => d + 1);
-        }, 1200);
+        }, 1080);
         
       } else if (result === 1) {
         setMonsters(prev => prev.filter(m => m.id !== targetMonster.id));
@@ -401,7 +414,7 @@ const DivisionMonsterGame = () => {
         setScore(s => s + targetMonster.number);
         setMonstersDefeated(d => d + 1);
         
-      } else {
+      } else if (result > 9 && result <= 100) {
         setNextMonsterId(n => {
           const newId = n;
           
@@ -430,6 +443,47 @@ const DivisionMonsterGame = () => {
           
           return n + count;
         });
+        setScore(s => s + targetMonster.number);
+        
+      } else {
+        // Smart enemies: >100 only 1 remains, others escape
+        for (let i = 0; i < count - 1; i++) {
+          setTimeout(() => {
+            const angle = (Math.PI * 2 * i) / (count - 1);
+            const escapeX = targetMonster.x + Math.cos(angle) * 20;
+            const escapeY = targetMonster.y - 30;
+            
+            const escapeId = `escape-${Date.now()}-${i}`;
+            setAnimations(prev => [...prev, {
+              id: escapeId,
+              type: 'escape',
+              x: targetMonster.x,
+              y: targetMonster.y,
+              targetX: escapeX,
+              targetY: escapeY
+            }]);
+            
+            setTimeout(() => {
+              setAnimations(prev => prev.filter(a => a.id !== escapeId));
+            }, 600);
+          }, i * 50);
+        }
+        
+        setNextMonsterId(n => {
+          const newMonster = {
+            id: n,
+            number: result,
+            x: targetMonster.x,
+            y: targetMonster.y,
+            baseX: targetMonster.x,
+            baseY: targetMonster.y
+          };
+          
+          setMonsters(prev => [...prev.filter(m => m.id !== targetMonster.id), newMonster]);
+          return n + 1;
+        });
+        
+        setScore(s => s + targetMonster.number);
       }
     }, 200);
   };
@@ -512,9 +566,6 @@ const DivisionMonsterGame = () => {
             <div className="font-bold text-purple-600">Wave {wave}</div>
             <div className="flex gap-2 sm:gap-4">
               <div className="text-blue-600 font-bold">Score: {score}</div>
-              <div className={`font-bold ${turnsLeft <= 3 ? 'text-red-600' : 'text-green-600'}`}>
-                Turns: {turnsLeft}
-              </div>
             </div>
           </div>
         </div>
@@ -523,7 +574,11 @@ const DivisionMonsterGame = () => {
           <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-red-400 to-transparent opacity-40"></div>
           
           {monsters.map(monster => {
-            const size = Math.sqrt(monster.number) * 10;
+            const baseSize = monster.number <= 100 
+              ? Math.sqrt(monster.number) * 10
+              : 100 + Math.log10(monster.number / 100) * 50;
+            
+            const size = Math.min(baseSize, 300);
             const color = getMonsterColor(monster.number);
             return (
               <div
@@ -540,7 +595,7 @@ const DivisionMonsterGame = () => {
                   style={{
                     width: `${size}px`,
                     height: `${size}px`,
-                    fontSize: `${size / 2.5}px`,
+                    fontSize: `${Math.min(size / 2.5, 40)}px`,
                     background: color.rgb,
                     backgroundImage: color.pattern,
                     backgroundSize: color.pattern.includes('radial') ? '6px 6px' : 
@@ -596,7 +651,7 @@ const DivisionMonsterGame = () => {
                     width: '30px',
                     height: '30px',
                     fontSize: '16px',
-                    animation: 'cell-division 2s ease-in-out forwards',
+                    animation: 'cell-division 1.8s ease-in-out forwards',
                     '--start-x': `${anim.x}%`,
                     '--start-y': `${anim.y}%`,
                     '--mid-x': `${anim.midX}%`,
@@ -610,6 +665,23 @@ const DivisionMonsterGame = () => {
                   }}
                 >
                   {anim.number}
+                </div>
+              );
+            } else if (anim.type === 'escape') {
+              return (
+                <div
+                  key={anim.id}
+                  className="absolute pointer-events-none z-20"
+                  style={{
+                    left: `${anim.x}%`,
+                    top: `${anim.y}%`,
+                    transform: 'translate(-50%, -50%)',
+                    animation: 'escape 0.6s ease-out forwards',
+                    '--escape-target-x': `${anim.targetX}%`,
+                    '--escape-target-y': `${anim.targetY}%`
+                  }}
+                >
+                  <div className="text-2xl">💨</div>
                 </div>
               );
             } else {
@@ -640,12 +712,6 @@ const DivisionMonsterGame = () => {
           
           <div className="absolute bottom-2 right-2 text-xs text-gray-500 opacity-50">
             {VERSION}
-          </div>
-          
-          <div className="absolute top-2 left-2 text-xs bg-black bg-opacity-70 text-white p-2 font-mono rounded z-30">
-            <div>Wave: {wave}</div>
-            <div>Monsters: {monsters.length}</div>
-            <div>Move Count: {invaderMoveCount}</div>
           </div>
         </div>
 
@@ -713,6 +779,20 @@ const DivisionMonsterGame = () => {
             left: var(--target-x);
             top: var(--target-y);
             transform: translate(-50%, -50%) scale(0.3) rotate(720deg);
+            opacity: 0;
+          }
+        }
+        @keyframes escape {
+          0% {
+            left: var(--escape-target-x);
+            top: var(--escape-target-y);
+            transform: translate(-50%, -50%) scale(1);
+            opacity: 1;
+          }
+          100% {
+            left: var(--escape-target-x);
+            top: var(--escape-target-y);
+            transform: translate(-50%, -50%) scale(0) translateY(-100px);
             opacity: 0;
           }
         }
