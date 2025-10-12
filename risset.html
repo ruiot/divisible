@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Risset Rhythm — Web Audio Demo</title>
+<style>
+  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,'Noto Sans JP',sans-serif;padding:20px;line-height:1.5}
+  .controls{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin:12px 0}
+  label{font-size:14px}
+  button{padding:8px 12px}
+  input[type=range]{width:220px}
+  .note{color:#555;font-size:13px;margin-top:10px}
+</style>
+</head>
+<body>
+  <h1>Risset Rhythm — Web Audio Demo</h1>
+  <p>複数の同じビート層（異なるテンポ）を重ね、音量を交差させることで「永遠に加速する」錯覚を作ります。</p>
+
+  <div class="controls">
+    <button id="startBtn">Start</button>
+    <button id="stopBtn" disabled>Stop</button>
+
+    <div>
+      <label>レイヤー数: <span id="layersVal">6</span></label><br>
+      <input id="layers" type="range" min="3" max="12" value="6">
+    </div>
+
+    <div>
+      <label>サイクル長（秒）: <span id="cycleVal">15</span></label><br>
+      <input id="cycle" type="range" min="4" max="30" value="15">
+    </div>
+
+    <div>
+      <label>ベース BPM: <span id="bpmVal">60</span></label><br>
+      <input id="bpm" type="range" min="30" max="160" value="60">
+    </div>
+  </div>
+
+  <p class="note">※ブラウザのオーディオを一度クリックして許可してください。スマホブラウザでは自動再生が制限されることがあります。</p>
+
+<script>
+/*
+ Risset rhythm (Web Audio)
+ - 原理: 複数テンポの同じビートをループさせ、各レイヤーのゲインを時間でフェード（交差）させる。
+ - ここでは短いパーカッシブ音（短いノイズ＋フィルタ）を使っています。
+*/
+
+let audioCtx = null;
+let layers = [];
+let running = false;
+
+const startBtn = document.getElementById('startBtn');
+const stopBtn  = document.getElementById('stopBtn');
+const layersSlider = document.getElementById('layers');
+const cycleSlider  = document.getElementById('cycle');
+const bpmSlider    = document.getElementById('bpm');
+const layersVal = document.getElementById('layersVal');
+const cycleVal  = document.getElementById('cycleVal');
+const bpmVal    = document.getElementById('bpmVal');
+
+layersVal.textContent = layersSlider.value;
+cycleVal.textContent = cycleSlider.value;
+bpmVal.textContent = bpmSlider.value;
+
+layersSlider.oninput = ()=> layersVal.textContent = layersSlider.value;
+cycleSlider.oninput  = ()=> cycleVal.textContent = cycleSlider.value;
+bpmSlider.oninput    = ()=> bpmVal.textContent = bpmSlider.value;
+
+startBtn.addEventListener('click', async ()=> {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') await audioCtx.resume();
+  start();
+});
+
+stopBtn.addEventListener('click', ()=> stop());
+
+function makeClickBuffer(ctx) {
+  // 短いパーカッション的なノイズバurstをバッファで作る
+  const sr = ctx.sampleRate;
+  const len = Math.floor(0.06 * sr);
+  const buffer = ctx.createBuffer(1, len, sr);
+  const d = buffer.getChannelData(0);
+  // 簡単なノイズ + 矩形の包絡
+  for (let i=0;i<len;i++){
+    const t = i/len;
+    const env = Math.pow(1 - t, 3); // カーブ
+    d[i] = (Math.random()*2-1) * env * 0.8;
+  }
+  return buffer;
+}
+
+function createLayer(ctx, id, totalLayers, baseBpm, cycleSec) {
+  // 各レイヤーは baseBpm * 2^(offset) のテンポを持つ（オクターブ的2倍刻み）
+  const oscGain = ctx.createGain();
+  oscGain.gain.value = 0;
+  oscGain.connect(ctx.destination);
+
+  const buffer = makeClickBuffer(ctx);
+
+  // layer index 0..N-1, we map them around center so tempos span doubling range
+  const centre = (totalLayers - 1) / 2;
+  const offset = id - centre; // -..0..+
+  // tempo multiplier (2^offset)
+  const tempoMul = Math.pow(2, offset);
+  const bpm = baseBpm * tempoMul;
+
+  // compute beat interval (seconds per beat). We'll use 4/4 feel: beatPeriod = 60 / bpm
+  const beatPeriod = 60 / bpm;
+
+  // We'll schedule repeated hits but fade layer's gain cyclically over cycleSec
+  return {id, buffer, oscGain, beatPeriod, cycleSec, tempoMul};
+}
+
+function start(){
+  if (running) return;
+  running = true;
+  stopBtn.disabled = false;
+  startBtn.disabled = true;
+
+  const N = parseInt(layersSlider.value,10);
+  const cycleSec = parseFloat(cycleSlider.value);
+  const baseBpm = parseFloat(bpmSlider.value);
+
+  // clear old
+  layers = [];
+
+  // create layers
+  for (let i=0;i<N;i++){
+    const layer = createLayer(audioCtx, i, N, baseBpm, cycleSec);
+    layer.oscGain.connect(audioCtx.destination);
+    layers.push(layer);
+  }
+
+  // scheduling loop
+  const startTime = audioCtx.currentTime + 0.05;
+  const lookahead = 0.2; // seconds to schedule ahead
+  const scheduleInterval = 0.05;
+  let nextScheduleTime = startTime;
+
+  // We'll schedule a repeated 'tick' for each layer: iterate beats from now to future window.
+  function scheduleUpTo(timeLimit) {
+    const now = audioCtx.currentTime;
+    for (const layer of layers) {
+      // We keep a nextBeat property per layer
+      if (!layer.nextBeat) layer.nextBeat = now;
+      while (layer.nextBeat < timeLimit) {
+        // place a hit
+        const src = audioCtx.createBufferSource();
+        src.buffer = layer.buffer;
+        const gainNode = audioCtx.createGain();
+        // connect through layer.oscGain (shared gain for amplitude crossfading)
+        gainNode.connect(layer.oscGain);
+        src.connect(gainNode);
+
+        // simple extra envelope for the hit
+        const t0 = layer.nextBeat;
+        gainNode.gain.setValueAtTime(0, t0);
+        gainNode.gain.linearRampToValueAtTime(1.0, t0 + 0.005);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, t0 + 0.12);
+
+        src.start(t0);
+        src.stop(t0 + 0.2);
+
+        layer.nextBeat += layer.beatPeriod; // schedule next beat for this layer
+      }
+    }
+  }
+
+  // crossfade function: sets each layer.oscGain.gain based on cycle phase
+  function updateGains() {
+    const t = audioCtx.currentTime;
+    for (const layer of layers) {
+      // Each layer has a phase offset so their peaks are staggered around the cycle
+      const N = layers.length;
+      const relative = (layer.id / N); // 0..1
+      // cycle position for this layer (0..1)
+      const cyclePos = ((t / layer.cycleSec) + relative) % 1.0;
+      // use a smooth bump (cosine) for gain envelope
+      // convert cyclePos (0..1) to -pi..pi
+      const x = (cyclePos * 2 * Math.PI) - Math.PI;
+      // bump peaked at x=0
+      const bump = Math.max(0, Math.cos(x) );
+      // optional shaping
+      const shaped = Math.pow(bump, 2.2);
+      // overall gain scale (small)
+      layer.oscGain.gain.setTargetAtTime(0.18 * shaped, audioCtx.currentTime, 0.02);
+    }
+  }
+
+  // main scheduler interval
+  const timerId = setInterval(()=>{
+    const tlimit = audioCtx.currentTime + lookahead;
+    scheduleUpTo(tlimit);
+    updateGains();
+    // stop condition checked elsewhere
+  }, scheduleInterval*1000);
+
+  // store timer id so we can clear
+  running = { timerId, startTime };
+}
+
+function stop(){
+  if (!running) return;
+  clearInterval(running.timerId);
+  running = false;
+  startBtn.disabled = false;
+  stopBtn.disabled = true;
+  // disconnect layer gains
+  layers.forEach(l => {
+    try { l.oscGain.disconnect(); } catch(e){}
+  });
+  layers = [];
+}
+</script>
+</body>
+</html>
