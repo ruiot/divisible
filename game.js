@@ -764,6 +764,16 @@ const DivisionMonsterGame = () => {
                   width: `${size}px`,
                   height: `${size}px`,
                   fontSize: `${Math.min(size / 2.5, 40)}px`,
+                  // width: '30px',
+                  // height: '30px',
+                  // fontSize: '16px',
+                  animation: 'cell-division 1.2s ease-in-out forwards',
+                  '--start-x': `${anim.x}%`,
+                  '--start-y': `${anim.y}%`,
+                  '--mid-x': `${anim.midX}%`,
+                  '--mid-y': `${anim.midY}%`,
+                  '--target-x': `${anim.targetX}%`,
+                  '--target-y': `${anim.targetY}%`,
                   background: fragmentColor.rgb,
                   backgroundImage: fragmentColor.pattern
                 }}
