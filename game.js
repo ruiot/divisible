@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-  // v0.3.3 - Right edge fix, accurate targeting, gameover sound, 9TET Shepard tone
-// feat: v0.3.3 - Right edge fix, accurate targeting, gameover sound, 9TET Shepard tone
+// v0.3.4 - Fix diagonal descent, screen-edge trajectory bug, button z-index
+// fix: v0.3.4 - Fix diagonal descent, screen-edge trajectory bug, button z-index
 
 const DivisionMonsterGame = () => {
   const [gameState, setGameState] = useState('menu');
@@ -23,7 +23,7 @@ const DivisionMonsterGame = () => {
   const buttonRefs = useRef({});
   const monstersRef = useRef([]);
 
-  const VERSION = 'v0.3.3';
+  const VERSION = 'v0.3.4';
 
   const validNumbers = [
     4, 6, 8, 9, 10, 12, 14, 15, 16, 18, 20, 21, 24, 25, 27, 28, 30, 32, 35, 36, 
@@ -272,24 +272,33 @@ const DivisionMonsterGame = () => {
     setNextMonsterId(nextMonsterId + waveMonsters.length);
     setInvaderDirection(1);
     setInvaderMoveCount(0);
+    
+    const baseFreq = 520;
+    const ratio = Math.pow(2, -1/9);
+    const frequencies = Array.from({length: 9}, (_, i) => 
+      Math.round(baseFreq * Math.pow(ratio, i))
+    );
+    playShepardTone(frequencies[8]); // start from the last and the lowest pitch
   };
 
   useEffect(() => {
     if (gameState !== 'playing' || monsters.length === 0) return;
 
     const interval = setInterval(() => {
+      const nextCount = invaderMoveCount + 1;
+      const isDescendTurn = nextCount % 9 === 0;
+      
       setMonsters(prev => {
         if (prev.length === 0) return prev;
         
-        const newMonsters = prev.map(m => ({
+        return prev.map(m => ({
           ...m,
-          x: m.x + invaderDirection * 2
+          x: isDescendTurn ? m.x : m.x + invaderDirection * 2,
+          y: isDescendTurn && wave !== 10 ? m.y + 5 : m.y
         }));
-        
-        return newMonsters;
       });
       
-      setInvaderMoveCount(c => c + 1);
+      setInvaderMoveCount(nextCount);
       
       const baseFreq = 520;
       const ratio = Math.pow(2, -1/9);
@@ -298,13 +307,7 @@ const DivisionMonsterGame = () => {
       );
       playShepardTone(frequencies[invaderMoveCount % 9]);
       
-      if (invaderMoveCount > 0 && invaderMoveCount % 9 === 0) {
-        if (wave !== 10) {
-          setMonsters(prev => prev.map(m => ({
-            ...m,
-            y: m.y + 5
-          })));
-        }
+      if (isDescendTurn) {
         setInvaderDirection(d => -d);
       }
     }, 500);
@@ -389,6 +392,9 @@ const DivisionMonsterGame = () => {
       }, 16);
     } else {
       let currentTargetIndex = 0;
+      let previousBoomerangX = -10;
+      let previousBoomerangY = 50;
+      
       setBoomerang({ number: ballNum, x: -10, y: 50, targets });
       
       const moveToNextTarget = () => {
@@ -412,8 +418,8 @@ const DivisionMonsterGame = () => {
         const targetX = currentMonster.x;
         const targetY = currentMonster.y;
         
-        const startX = currentTargetIndex === 0 ? -10 : (monstersRef.current.find(m => m.id === targets[currentTargetIndex - 1].id)?.x || -10);
-        const startY = currentTargetIndex === 0 ? 50 : (monstersRef.current.find(m => m.id === targets[currentTargetIndex - 1].id)?.y || 50);
+        const startX = currentTargetIndex === 0 ? -10 : previousBoomerangX;
+        const startY = currentTargetIndex === 0 ? 50 : previousBoomerangY;
         
         let step = 0;
         const totalSteps = 30;
@@ -431,6 +437,10 @@ const DivisionMonsterGame = () => {
           
           if (step >= totalSteps) {
             clearInterval(boomerangIntervalRef.current);
+            
+            previousBoomerangX = x;
+            previousBoomerangY = y;
+            
             if (!processedMonstersRef.current.has(targetId)) {
               processedMonstersRef.current.add(targetId);
               processHit(currentMonster, ballNum);
