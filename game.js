@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-// v0.3.0 - Elementary Mode with progressive waves and boss battle
+// v0.3.1 - Layout fixes, attack pause, front-to-back targeting
+// feat: v0.3.1 - Fix iOS layout, optimize 8-column spacing, pause during attack, front-to-back targeting
 
 const DivisionMonsterGame = () => {
   const [gameState, setGameState] = useState('menu');
@@ -20,7 +21,7 @@ const DivisionMonsterGame = () => {
   const processedMonstersRef = useRef(new Set());
   const buttonRefs = useRef({});
 
-  const VERSION = 'v0.3.0';
+  const VERSION = 'v0.3.1';
 
   const validNumbers = [
     4, 6, 8, 9, 10, 12, 14, 15, 16, 18, 20, 21, 24, 25, 27, 28, 30, 32, 35, 36, 
@@ -145,26 +146,21 @@ const DivisionMonsterGame = () => {
   };
 
   const getWaveMonsters = (waveNum) => {
-    // Wave 10: Boss battle
     if (waveNum === 10) {
       return [362880]; // 9!
     }
     
-    // Wave 11+: Endless mode (random 16-24 enemies from all 37)
     if (waveNum >= 11) {
       const shuffled = [...validNumbers].sort(() => Math.random() - 0.5);
-      const count = 16 + Math.floor(Math.random() * 9); // 16-24
+      const count = 16 + Math.floor(Math.random() * 9);
       return shuffled.slice(0, count);
     }
     
-    // Wave 1-9: Progressive random from pool
     const baseCount = 13;
     const increment = 3;
     const count = baseCount + (waveNum - 1) * increment;
-    const pool = validNumbers.slice(0, count);
-    const shuffled = [...pool].sort(() => Math.random() - 0.5);
     
-    return shuffled;
+    return validNumbers.slice(0, count);
   };
 
   const startGame = () => {
@@ -190,33 +186,36 @@ const DivisionMonsterGame = () => {
     processedMonstersRef.current = new Set();
     
     const waveMonsters = getWaveMonsters(waveNum);
-    const sortedMonsters = [...waveMonsters].sort((a, b) => b - a); // Descending: large on top, small on bottom
-    
     const cols = 8;
-    const rows = Math.ceil(sortedMonsters.length / cols);
+    const rows = Math.ceil(waveMonsters.length / cols);
     
-    const newMonsters = sortedMonsters.map((num, idx) => {
+    const newMonsters = waveMonsters.map((num, idx) => {
       const col = idx % cols;
       const row = Math.floor(idx / cols);
+      
+      // Top row centering for partial fill
+      const monstersInThisRow = row === 0 ? Math.min(cols, waveMonsters.length) : 
+                                 (row === rows - 1 ? waveMonsters.length - row * cols : cols);
+      const offsetX = monstersInThisRow < cols ? (cols - monstersInThisRow) * (80 / 7) / 2 : 0;
       
       return {
         id: nextMonsterId + idx,
         number: num,
-        x: 20 + col * (60 / cols),
-        y: 10 + row * 15,
-        baseX: 20 + col * (60 / cols),
-        baseY: 10 + row * 15
+        x: 10 + offsetX + col * (80 / 7),
+        y: 5 + row * 10,
+        baseX: 10 + offsetX + col * (80 / 7),
+        baseY: 5 + row * 10
       };
     });
     
     setMonsters(newMonsters);
-    setNextMonsterId(nextMonsterId + sortedMonsters.length);
+    setNextMonsterId(nextMonsterId + waveMonsters.length);
     setInvaderDirection(1);
     setInvaderMoveCount(0);
   };
 
   useEffect(() => {
-    if (gameState !== 'playing' || monsters.length === 0) return;
+    if (gameState !== 'playing' || monsters.length === 0 || boomerang) return;
 
     const interval = setInterval(() => {
       setMonsters(prev => {
@@ -247,16 +246,21 @@ const DivisionMonsterGame = () => {
     }, 500);
 
     return () => clearInterval(interval);
-  }, [gameState, invaderMoveCount, invaderDirection, wave]);
+  }, [gameState, invaderMoveCount, invaderDirection, wave, boomerang]);
 
   useEffect(() => {
     if (gameState === 'playing') {
       const anyTooLow = monsters.some(m => m.y > 100);
       if (anyTooLow) {
         setGameState('gameOver');
+        setAnimations([]);
+        setBoomerang(null);
+        if (boomerangIntervalRef.current) {
+          clearInterval(boomerangIntervalRef.current);
+        }
       }
     }
-  }, [monsters, gameState, boomerang]);
+  }, [monsters, gameState]);
 
   useEffect(() => {
     if (gameState === 'playing' && monsters.length === 0 && !boomerang) {
@@ -275,7 +279,7 @@ const DivisionMonsterGame = () => {
     if (!button) return null;
 
     const rect = button.getBoundingClientRect();
-    const parent = button.closest('.h-screen, .min-h-screen');
+    const parent = button.closest('.play-area-container');
     if (!parent) return null;
 
     const parentRect = parent.getBoundingClientRect();
@@ -289,6 +293,7 @@ const DivisionMonsterGame = () => {
   const throwBall = (ballNum) => {
     if (!balls[ballNum] || balls[ballNum] <= 0) return;
     if (boomerang) return;
+    if (gameState !== 'playing') return;
 
     const newBalls = {...balls, [ballNum]: balls[ballNum] - 1};
     if (newBalls[ballNum] === 0) delete newBalls[ballNum];
@@ -297,7 +302,10 @@ const DivisionMonsterGame = () => {
     playSound('throw');
     processedMonstersRef.current = new Set();
     
-    const targets = monsters.filter(m => m.number % ballNum === 0);
+    // Sort targets by y (descending) - front to back
+    const targets = monsters
+      .filter(m => m.number % ballNum === 0)
+      .sort((a, b) => b.y - a.y);
     
     if (targets.length === 0) {
       setBoomerang({ number: ballNum, x: -10, y: 50 });
@@ -358,6 +366,8 @@ const DivisionMonsterGame = () => {
   };
 
   const processHit = (targetMonster, ballNum) => {
+    if (gameState !== 'playing') return;
+    
     const result = targetMonster.number / ballNum;
     const count = ballNum;
 
@@ -365,6 +375,8 @@ const DivisionMonsterGame = () => {
     addAnimation('explode', targetMonster.x, targetMonster.y);
 
     setTimeout(() => {
+      if (gameState !== 'playing') return;
+      
       if (result >= 2 && result <= 9) {
         const buttonPos = getButtonPosition(result);
         const pattern = getGeometricPattern(count);
@@ -393,11 +405,13 @@ const DivisionMonsterGame = () => {
         setMonsters(prev => prev.filter(m => m.id !== targetMonster.id));
         
         setTimeout(() => {
+          if (gameState !== 'playing') return;
           const fragmentIds = newFragments.map(f => f.id);
           setAnimations(prev => prev.filter(a => !fragmentIds.includes(a.id)));
-        }, 1800);
+        }, 1200);
 
         setTimeout(() => {
+          if (gameState !== 'playing') return;
           playSound('catch');
           setBalls(prev => ({
             ...prev,
@@ -405,7 +419,7 @@ const DivisionMonsterGame = () => {
           }));
           setScore(s => s + targetMonster.number);
           setMonstersDefeated(d => d + 1);
-        }, 1080);
+        }, 800);
         
       } else if (result === 1) {
         setMonsters(prev => prev.filter(m => m.id !== targetMonster.id));
@@ -446,12 +460,12 @@ const DivisionMonsterGame = () => {
         setScore(s => s + targetMonster.number);
         
       } else {
-        // Smart enemies: >100 only 1 remains, others escape
         for (let i = 0; i < count - 1; i++) {
           setTimeout(() => {
             const angle = (Math.PI * 2 * i) / (count - 1);
-            const escapeX = targetMonster.x + Math.cos(angle) * 20;
-            const escapeY = targetMonster.y - 30;
+            const distance = 30;
+            const escapeX = targetMonster.x + Math.cos(angle) * distance;
+            const escapeY = targetMonster.y + Math.sin(angle) * distance;
             
             const escapeId = `escape-${Date.now()}-${i}`;
             setAnimations(prev => [...prev, {
@@ -557,197 +571,201 @@ const DivisionMonsterGame = () => {
     );
   }
 
+  const maxRows = Math.ceil(getWaveMonsters(wave).length / 8);
+
   return (
-    <div className="h-screen bg-gradient-to-b from-blue-300 to-purple-400 p-2 pb-4 flex flex-col"
-         style={{ paddingBottom: '1rem' }}>
-      <div className="max-w-4xl mx-auto w-full h-full flex flex-col">
-        <div className="bg-white rounded-xl p-2 mb-2 shadow-lg flex-shrink-0">
-          <div className="flex justify-between items-center text-xs sm:text-sm">
-            <div className="font-bold text-purple-600">Wave {wave}</div>
-            <div className="flex gap-2 sm:gap-4">
-              <div className="text-blue-600 font-bold">Score: {score}</div>
-            </div>
-          </div>
+    <div className="fixed inset-0 bg-gradient-to-b from-blue-300 to-purple-400 flex flex-col play-area-container"
+         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+      <div className="flex-none bg-white rounded-b-xl p-2 mx-2 shadow-lg">
+        <div className="flex justify-between items-center text-xs sm:text-sm">
+          <div className="font-bold text-purple-600">Wave {wave}</div>
+          <div className="text-blue-600 font-bold">Score: {score}</div>
         </div>
+      </div>
 
-        <div className="bg-gradient-to-b from-sky-100 to-sky-200 rounded-xl mb-2 shadow-lg relative flex-1 overflow-hidden min-h-0">
-          <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-red-400 to-transparent opacity-40"></div>
+      <div className="flex-1 bg-gradient-to-b from-sky-100 to-sky-200 m-2 rounded-xl shadow-lg relative overflow-hidden">
+        <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-red-400 to-transparent opacity-40"></div>
+        
+        {monsters.map(monster => {
+          const baseSize = monster.number <= 100 
+            ? Math.sqrt(monster.number) * 10
+            : 100 + Math.log10(monster.number / 100) * 50;
+          const size = Math.min(baseSize, 300);
+          const color = getMonsterColor(monster.number);
           
-          {monsters.map(monster => {
-            const baseSize = monster.number <= 100 
-              ? Math.sqrt(monster.number) * 10
-              : 100 + Math.log10(monster.number / 100) * 50;
-            
-            const size = Math.min(baseSize, 300);
-            const color = getMonsterColor(monster.number);
-            return (
-              <div
-                key={monster.id}
-                className="absolute transition-none"
-                style={{
-                  left: `${monster.x}%`,
-                  top: `${monster.y}%`,
-                  transform: 'translate(-50%, -50%)'
-                }}
-              >
-                <div 
-                  className="rounded-full flex items-center justify-center text-white font-bold shadow-2xl"
-                  style={{
-                    width: `${size}px`,
-                    height: `${size}px`,
-                    fontSize: `${Math.min(size / 2.5, 40)}px`,
-                    background: color.rgb,
-                    backgroundImage: color.pattern,
-                    backgroundSize: color.pattern.includes('radial') ? '6px 6px' : 
-                                   color.pattern.includes('conic') ? '6px 6px' : 'auto'
-                  }}
-                >
-                  {monster.number}
-                </div>
-              </div>
-            );
-          })}
-
-          {boomerang && (
+          return (
             <div
-              className="absolute z-10"
+              key={monster.id}
+              className="absolute transition-none"
               style={{
-                left: `${boomerang.x}%`,
-                top: `${boomerang.y}%`,
+                left: `${monster.x}%`,
+                top: `${monster.y}%`,
                 transform: 'translate(-50%, -50%)'
               }}
             >
-              <div className="relative">
-                <div className="absolute inset-0 bg-yellow-300 rounded-full blur-2xl opacity-80 animate-pulse"></div>
-                <div className="relative rounded-full flex items-center justify-center text-white font-bold shadow-2xl"
-                  style={{ 
-                    width: '40px',
-                    height: '40px',
-                    fontSize: '20px',
-                    animation: 'spin 0.3s linear infinite',
-                    background: getMonsterColor(boomerang.number).rgb,
-                    backgroundImage: getMonsterColor(boomerang.number).pattern,
-                    backgroundSize: getMonsterColor(boomerang.number).pattern.includes('radial') ? '6px 6px' : 
-                                   getMonsterColor(boomerang.number).pattern.includes('conic') ? '6px 6px' : 'auto'
-                  }}
-                >
-                  {boomerang.number}
-                </div>
+              <div 
+                className="rounded-full flex items-center justify-center text-white font-bold shadow-2xl"
+                style={{
+                  width: `${size}px`,
+                  height: `${size}px`,
+                  fontSize: `${Math.min(size / 2.5, 40)}px`,
+                  background: color.rgb,
+                  backgroundImage: color.pattern,
+                  backgroundSize: color.pattern.includes('radial') ? '6px 6px' : 
+                                 color.pattern.includes('conic') ? '6px 6px' : 'auto'
+                }}
+              >
+                {monster.number}
               </div>
             </div>
-          )}
+          );
+        })}
 
-          {animations.map(anim => {
-            if (anim.type === 'fragment') {
-              const fragmentColor = getMonsterColor(anim.number);
-              return (
-                <div
-                  key={anim.id}
-                  className="absolute pointer-events-none z-20 rounded-full flex items-center justify-center text-white font-bold shadow-xl"
-                  style={{
-                    left: `${anim.x}%`,
-                    top: `${anim.y}%`,
-                    transform: 'translate(-50%, -50%)',
-                    width: '30px',
-                    height: '30px',
-                    fontSize: '16px',
-                    animation: 'cell-division 1.8s ease-in-out forwards',
-                    '--start-x': `${anim.x}%`,
-                    '--start-y': `${anim.y}%`,
-                    '--mid-x': `${anim.midX}%`,
-                    '--mid-y': `${anim.midY}%`,
-                    '--target-x': `${anim.targetX}%`,
-                    '--target-y': `${anim.targetY}%`,
-                    background: fragmentColor.rgb,
-                    backgroundImage: fragmentColor.pattern,
-                    backgroundSize: fragmentColor.pattern.includes('radial') ? '6px 6px' : 
-                                   fragmentColor.pattern.includes('conic') ? '6px 6px' : 'auto'
-                  }}
-                >
-                  {anim.number}
-                </div>
-              );
-            } else if (anim.type === 'escape') {
-              return (
-                <div
-                  key={anim.id}
-                  className="absolute pointer-events-none z-20"
-                  style={{
-                    left: `${anim.x}%`,
-                    top: `${anim.y}%`,
-                    transform: 'translate(-50%, -50%)',
-                    animation: 'escape 0.6s ease-out forwards',
-                    '--escape-target-x': `${anim.targetX}%`,
-                    '--escape-target-y': `${anim.targetY}%`
-                  }}
-                >
-                  <div className="text-2xl">💨</div>
-                </div>
-              );
-            } else {
-              return (
-                <div
-                  key={anim.id}
-                  className="absolute pointer-events-none z-20"
-                  style={{
-                    left: `${anim.x}%`,
-                    top: `${anim.y}%`,
-                    transform: 'translate(-50%, -50%)'
-                  }}
-                >
-                  {anim.type === 'explode' && (
-                    <div className="text-3xl sm:text-5xl" style={{animation: 'explode 0.8s ease-out'}}>
-                      💥
-                    </div>
-                  )}
-                  {anim.type === 'vanish' && (
-                    <div className="text-2xl sm:text-4xl" style={{animation: 'vanish 0.8s ease-out'}}>
-                      ✨
-                    </div>
-                  )}
-                </div>
-              );
-            }
-          })}
-          
-          <div className="absolute bottom-2 right-2 text-xs text-gray-500 opacity-50">
-            {VERSION}
+        {boomerang && (
+          <div
+            className="absolute z-10"
+            style={{
+              left: `${boomerang.x}%`,
+              top: `${boomerang.y}%`,
+              transform: 'translate(-50%, -50%)'
+            }}
+          >
+            <div className="relative">
+              <div className="absolute inset-0 bg-yellow-300 rounded-full blur-2xl opacity-80 animate-pulse"></div>
+              <div className="relative rounded-full flex items-center justify-center text-white font-bold shadow-2xl"
+                style={{ 
+                  width: '40px',
+                  height: '40px',
+                  fontSize: '20px',
+                  animation: 'spin 0.3s linear infinite',
+                  background: getMonsterColor(boomerang.number).rgb,
+                  backgroundImage: getMonsterColor(boomerang.number).pattern,
+                  backgroundSize: getMonsterColor(boomerang.number).pattern.includes('radial') ? '6px 6px' : 
+                                 getMonsterColor(boomerang.number).pattern.includes('conic') ? '6px 6px' : 'auto'
+                }}
+              >
+                {boomerang.number}
+              </div>
+            </div>
           </div>
+        )}
+
+        {animations.map(anim => {
+          if (anim.type === 'fragment') {
+            const fragmentColor = getMonsterColor(anim.number);
+            return (
+              <div
+                key={anim.id}
+                className="absolute pointer-events-none z-20 rounded-full flex items-center justify-center text-white font-bold shadow-xl"
+                style={{
+                  left: `${anim.x}%`,
+                  top: `${anim.y}%`,
+                  transform: 'translate(-50%, -50%)',
+                  width: '30px',
+                  height: '30px',
+                  fontSize: '16px',
+                  animation: 'cell-division 1.2s ease-in-out forwards',
+                  '--start-x': `${anim.x}%`,
+                  '--start-y': `${anim.y}%`,
+                  '--mid-x': `${anim.midX}%`,
+                  '--mid-y': `${anim.midY}%`,
+                  '--target-x': `${anim.targetX}%`,
+                  '--target-y': `${anim.targetY}%`,
+                  background: fragmentColor.rgb,
+                  backgroundImage: fragmentColor.pattern,
+                  backgroundSize: fragmentColor.pattern.includes('radial') ? '6px 6px' : 
+                                 fragmentColor.pattern.includes('conic') ? '6px 6px' : 'auto'
+                }}
+              >
+                {anim.number}
+              </div>
+            );
+          } else if (anim.type === 'escape') {
+            return (
+              <div
+                key={anim.id}
+                className="absolute pointer-events-none z-20"
+                style={{
+                  left: `${anim.x}%`,
+                  top: `${anim.y}%`,
+                  transform: 'translate(-50%, -50%)',
+                  animation: 'escape 0.6s ease-out forwards',
+                  '--escape-target-x': `${anim.targetX}%`,
+                  '--escape-target-y': `${anim.targetY}%`
+                }}
+              >
+                <div className="text-2xl">💨</div>
+              </div>
+            );
+          } else {
+            return (
+              <div
+                key={anim.id}
+                className="absolute pointer-events-none z-20"
+                style={{
+                  left: `${anim.x}%`,
+                  top: `${anim.y}%`,
+                  transform: 'translate(-50%, -50%)'
+                }}
+              >
+                {anim.type === 'explode' && (
+                  <div className="text-3xl sm:text-5xl" style={{animation: 'explode 0.8s ease-out'}}>
+                    💥
+                  </div>
+                )}
+                {anim.type === 'vanish' && (
+                  <div className="text-2xl sm:text-4xl" style={{animation: 'vanish 0.8s ease-out'}}>
+                    ✨
+                  </div>
+                )}
+              </div>
+            );
+          }
+        })}
+        
+        <div className="absolute bottom-2 right-2 text-xs text-gray-500 opacity-50">
+          {VERSION}
         </div>
+        
+        <div className="absolute top-2 left-2 text-xs bg-black bg-opacity-70 text-white p-2 font-mono rounded z-30">
+          <div>Wave: {wave}</div>
+          <div>Monsters: {monsters.length}</div>
+          <div>Max Rows: {maxRows}</div>
+        </div>
+      </div>
 
-        <div className="bg-white rounded-xl p-2 shadow-lg flex-shrink-0 mb-2">
-          <div className="grid grid-cols-8 gap-1 sm:gap-2">
-            {[2, 3, 4, 5, 6, 7, 8, 9].map(num => {
-              const count = balls[num] || 0;
-              const color = getMonsterColor(num);
-              return (
-                <button 
-                  key={num}
-                  ref={el => buttonRefs.current[num] = el}
-                  className={`relative aspect-square rounded-xl font-bold text-lg sm:text-xl transition transform ${
-                    count > 0 
-                      ? 'shadow-lg hover:scale-110 active:scale-95 text-white' 
-                      : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                  }`}
-                  style={count > 0 ? {
-                    background: color.rgb,
-                    backgroundImage: color.pattern,
-                    backgroundSize: color.pattern.includes('radial') ? '6px 6px' : 
-                                   color.pattern.includes('conic') ? '6px 6px' : 'auto'
-                  } : {}}
-                  onClick={() => throwBall(num)}
-                  disabled={count === 0}
-                >
-                  {num}
-                  {count > 0 && (
-                    <div className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center text-xs font-bold shadow-lg">
-                      {count}
-                    </div>
-                  )}
-                </button>
-              );
-            })}
-          </div>
+      <div className="flex-none bg-white rounded-t-xl mx-2 mb-2 p-2 shadow-lg">
+        <div className="grid grid-cols-8 gap-1">
+          {[2, 3, 4, 5, 6, 7, 8, 9].map(num => {
+            const count = balls[num] || 0;
+            const color = getMonsterColor(num);
+            return (
+              <button 
+                key={num}
+                ref={el => buttonRefs.current[num] = el}
+                className={`relative aspect-square rounded-xl font-bold text-base sm:text-xl transition transform ${
+                  count > 0 
+                    ? 'shadow-lg hover:scale-110 active:scale-95 text-white' 
+                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                }`}
+                style={count > 0 ? {
+                  background: color.rgb,
+                  backgroundImage: color.pattern,
+                  backgroundSize: color.pattern.includes('radial') ? '6px 6px' : 
+                                 color.pattern.includes('conic') ? '6px 6px' : 'auto'
+                } : {}}
+                onClick={() => throwBall(num)}
+                disabled={count === 0}
+              >
+                {num}
+                {count > 0 && (
+                  <div className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center text-xs font-bold shadow-lg">
+                    {count}
+                  </div>
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
       
@@ -782,6 +800,15 @@ const DivisionMonsterGame = () => {
             opacity: 0;
           }
         }
+        @keyframes explode {
+          0% { transform: scale(0.5); opacity: 1; }
+          50% { transform: scale(1.5); opacity: 0.8; }
+          100% { transform: scale(2); opacity: 0; }
+        }
+        @keyframes vanish {
+          0% { transform: scale(1) rotate(0deg); opacity: 1; }
+          100% { transform: scale(2) rotate(360deg); opacity: 0; }
+        }
         @keyframes escape {
           0% {
             left: var(--escape-target-x);
@@ -792,22 +819,13 @@ const DivisionMonsterGame = () => {
           100% {
             left: var(--escape-target-x);
             top: var(--escape-target-y);
-            transform: translate(-50%, -50%) scale(0) translateY(-100px);
+            transform: translate(-50%, -50%) scale(0) translateX(100px) translateY(-50px);
             opacity: 0;
           }
-        }
-        @keyframes explode {
-          0% { transform: scale(0.5); opacity: 1; }
-          50% { transform: scale(1.5); opacity: 0.8; }
-          100% { transform: scale(2); opacity: 0; }
-        }
-        @keyframes vanish {
-          0% { transform: scale(1) rotate(0deg); opacity: 1; }
-          100% { transform: scale(2) rotate(360deg); opacity: 0; }
         }
       `}</style>
     </div>
   );
 };
 
-export default DivisionMonsterGame;
+export default DivisionMonsterGame;                  
