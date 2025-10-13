@@ -196,15 +196,6 @@ const DivisionMonsterGame = () => {
     };
   };
 
-  // 共通のサイズ計算関数
-  const getMonsterSize = (number) => {
-    const baseSize = number <= 100
-      ? Math.sqrt(number) * 10
-      : 100 + Math.log10(number / 100) * 50;
-    return Math.min(baseSize, 300);
-  };
-
- 
   const getWaveMonsters = (waveNum) => {
     if (waveNum === 10) {
       return [362880];
@@ -684,11 +675,10 @@ const DivisionMonsterGame = () => {
         <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-red-400 to-transparent opacity-40"></div>
         
         {monsters.map(monster => {
-          // const baseSize = monster.number <= 100 
-          //   ? Math.sqrt(monster.number) * 10
-          //   : 100 + Math.log10(monster.number / 100) * 50;
-          // const size = Math.min(baseSize, 300);
-          const size = getMonsterSize(monster.number);
+          const baseSize = monster.number <= 100 
+            ? Math.sqrt(monster.number) * 10
+            : 100 + Math.log10(monster.number / 100) * 50;
+          const size = Math.min(baseSize, 300);
           const color = getMonsterColor(monster.number);
           
           return (
@@ -750,9 +740,7 @@ const DivisionMonsterGame = () => {
 
         {animations.map(anim => {
           if (anim.type === 'fragment') {
-            //
             const fragmentColor = getMonsterColor(anim.number);
-            const size = getMonsterSize(anim.number);
             return (
               <div
                 key={anim.id}
@@ -761,12 +749,9 @@ const DivisionMonsterGame = () => {
                   left: `${anim.x}%`,
                   top: `${anim.y}%`,
                   transform: 'translate(-50%, -50%)',
-                  width: `${size}px`,
-                  height: `${size}px`,
-                  fontSize: `${Math.min(size / 2.5, 40)}px`,
-                  // width: '30px',
-                  // height: '30px',
-                  // fontSize: '16px',
+                  width: '30px',
+                  height: '30px',
+                  fontSize: '16px',
                   animation: 'cell-division 1.2s ease-in-out forwards',
                   '--start-x': `${anim.x}%`,
                   '--start-y': `${anim.y}%`,
@@ -775,7 +760,9 @@ const DivisionMonsterGame = () => {
                   '--target-x': `${anim.targetX}%`,
                   '--target-y': `${anim.targetY}%`,
                   background: fragmentColor.rgb,
-                  backgroundImage: fragmentColor.pattern
+                  backgroundImage: fragmentColor.pattern,
+                  backgroundSize: fragmentColor.pattern.includes('radial') ? '6px 6px' : 
+                                 fragmentColor.pattern.includes('conic') ? '6px 6px' : 'auto'
                 }}
               >
                 {anim.number}
