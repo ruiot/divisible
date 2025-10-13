@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-// v0.3.2 - Button z-index, layout fixes, restore movement during attack
-// fix: v0.3.2 - Button z-index, layout fixes, restore movement during attack
+  // v0.3.3 - Right edge fix, accurate targeting, gameover sound, 9TET Shepard tone
+// feat: v0.3.3 - Right edge fix, accurate targeting, gameover sound, 9TET Shepard tone
 
 const DivisionMonsterGame = () => {
   const [gameState, setGameState] = useState('menu');
@@ -21,18 +21,27 @@ const DivisionMonsterGame = () => {
   const boomerangIntervalRef = useRef(null);
   const processedMonstersRef = useRef(new Set());
   const buttonRefs = useRef({});
+  const monstersRef = useRef([]);
 
-  const VERSION = 'v0.3.2';
+  const VERSION = 'v0.3.3';
 
   const validNumbers = [
     4, 6, 8, 9, 10, 12, 14, 15, 16, 18, 20, 21, 24, 25, 27, 28, 30, 32, 35, 36, 
     40, 42, 45, 48, 49, 50, 54, 56, 60, 63, 64, 70, 72, 80, 81, 90, 100
   ];
 
+  useEffect(() => {
+    monstersRef.current = monsters;
+  }, [monsters]);
+
   const initAudio = () => {
     if (!audioContextRef.current) {
       audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
     }
+  };
+
+  const gaussian = (x, center, width) => {
+    return Math.exp(-Math.pow(x - center, 2) / (2 * Math.pow(width, 2)));
   };
 
   const playSound = (type, frequency = 440) => {
@@ -80,7 +89,48 @@ const DivisionMonsterGame = () => {
       gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
       osc.start(ctx.currentTime);
       osc.stop(ctx.currentTime + 0.1);
+    } else if (type === 'gameover') {
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(150, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(50, ctx.currentTime + 0.3);
+      gain.gain.setValueAtTime(0.4, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.3);
     }
+  };
+
+  const playShepardTone = (baseFreq) => {
+    if (!audioContextRef.current) return;
+    
+    const octaves = [-3, -2, -1, 0, 1, 2, 3, 4, 5, 6];
+    const center = 3;
+    const width = 2.5;
+    
+    const ctx = audioContextRef.current;
+    
+    octaves.forEach((octave, index) => {
+      const freq = baseFreq * Math.pow(2, octave);
+      
+      if (freq < 20 || freq > 20000) return;
+      
+      const volume = gaussian(index, center, width) * 0.15;
+      
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      
+      osc.frequency.setValueAtTime(freq, ctx.currentTime);
+      
+      gain.gain.setValueAtTime(0.001, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(volume, ctx.currentTime + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+      
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.1);
+    });
   };
 
   const getFactors = (num) => {
@@ -148,7 +198,7 @@ const DivisionMonsterGame = () => {
 
   const getWaveMonsters = (waveNum) => {
     if (waveNum === 10) {
-      return [362880]; // 9!
+      return [362880];
     }
     
     if (waveNum >= 11) {
@@ -190,32 +240,30 @@ const DivisionMonsterGame = () => {
     
     const waveMonsters = getWaveMonsters(waveNum);
     const cols = 8;
-    const rows = Math.ceil(waveMonsters.length / cols);
     
-    // Field capacity: 9 rows max (startY=5%, rowSpacing=10%, gameOverLine=100%)
-    // Advance limit: (9 - rows) + 1 turns before game over
-    // Example: Wave 1 (2 rows) → 8 advances, Wave 9 (5 rows) → 5 advances
+    const moveRange = 2 * 9;
+    const maxRightX = 95;
+    const maxStartX = maxRightX - moveRange;
     
-    const leftMargin = 10;
-    const rightMargin = 10;
-    const moveRange = 2 * 9; // 18% total horizontal movement
-    const usableWidth = 100 - leftMargin - rightMargin - moveRange;
+    const leftMargin = 5;
+    const usableWidth = maxStartX - leftMargin;
     const colSpacing = usableWidth / (cols - 1);
+    
+    const rows = Math.ceil(waveMonsters.length / cols);
     
     const newMonsters = waveMonsters.map((num, idx) => {
       const col = idx % cols;
       const row = Math.floor(idx / cols);
       
-      const monstersInThisRow = row === 0 ? Math.min(cols, waveMonsters.length) : 
-                                 (row === rows - 1 ? waveMonsters.length - row * cols : cols);
+      const monstersInThisRow = row === rows - 1 ? waveMonsters.length - row * cols : Math.min(cols, waveMonsters.length - row * cols);
       const offsetX = monstersInThisRow < cols ? (cols - monstersInThisRow) * colSpacing / 2 : 0;
       
       return {
         id: nextMonsterId + idx,
         number: num,
-        x: leftMargin + moveRange/2 + offsetX + col * colSpacing,
+        x: leftMargin + offsetX + col * colSpacing,
         y: 5 + row * 10,
-        baseX: leftMargin + moveRange/2 + offsetX + col * colSpacing,
+        baseX: leftMargin + offsetX + col * colSpacing,
         baseY: 5 + row * 10
       };
     });
@@ -243,8 +291,12 @@ const DivisionMonsterGame = () => {
       
       setInvaderMoveCount(c => c + 1);
       
-      const frequencies = [520, 490, 460, 430, 400, 370, 340, 310, 280];
-      playSound('invader', frequencies[invaderMoveCount % 9]);
+      const baseFreq = 520;
+      const ratio = Math.pow(2, -1/9);
+      const frequencies = Array.from({length: 9}, (_, i) => 
+        Math.round(baseFreq * Math.pow(ratio, i))
+      );
+      playShepardTone(frequencies[invaderMoveCount % 9]);
       
       if (invaderMoveCount > 0 && invaderMoveCount % 9 === 0) {
         if (wave !== 10) {
@@ -264,6 +316,7 @@ const DivisionMonsterGame = () => {
     if (gameState === 'playing') {
       const anyTooLow = monsters.some(m => m.y > 100);
       if (anyTooLow) {
+        playSound('gameover');
         setGameState('gameOver');
         setAnimations([]);
         setBoomerang(null);
@@ -347,9 +400,20 @@ const DivisionMonsterGame = () => {
           return;
         }
         
-        const target = targets[currentTargetIndex];
-        const startX = currentTargetIndex === 0 ? -10 : targets[currentTargetIndex - 1].x;
-        const startY = currentTargetIndex === 0 ? 50 : targets[currentTargetIndex - 1].y;
+        const targetId = targets[currentTargetIndex].id;
+        const currentMonster = monstersRef.current.find(m => m.id === targetId);
+        
+        if (!currentMonster) {
+          currentTargetIndex++;
+          setTimeout(moveToNextTarget, 0);
+          return;
+        }
+        
+        const targetX = currentMonster.x;
+        const targetY = currentMonster.y;
+        
+        const startX = currentTargetIndex === 0 ? -10 : (monstersRef.current.find(m => m.id === targets[currentTargetIndex - 1].id)?.x || -10);
+        const startY = currentTargetIndex === 0 ? 50 : (monstersRef.current.find(m => m.id === targets[currentTargetIndex - 1].id)?.y || 50);
         
         let step = 0;
         const totalSteps = 30;
@@ -360,16 +424,16 @@ const DivisionMonsterGame = () => {
           const progress = step / totalSteps;
           
           const t = progress * Math.PI;
-          const x = startX + (target.x - startX) * progress;
-          const y = startY + (target.y - startY) * progress + Math.sin(t) * 12 * arcDirection;
+          const x = startX + (targetX - startX) * progress;
+          const y = startY + (targetY - startY) * progress + Math.sin(t) * 12 * arcDirection;
           
           setBoomerang(prev => prev ? { ...prev, x, y } : null);
           
           if (step >= totalSteps) {
             clearInterval(boomerangIntervalRef.current);
-            if (!processedMonstersRef.current.has(target.id)) {
-              processedMonstersRef.current.add(target.id);
-              processHit(target, ballNum);
+            if (!processedMonstersRef.current.has(targetId)) {
+              processedMonstersRef.current.add(targetId);
+              processHit(currentMonster, ballNum);
             }
             currentTargetIndex++;
             setTimeout(moveToNextTarget, 200);
@@ -587,8 +651,6 @@ const DivisionMonsterGame = () => {
     );
   }
 
-  // const maxRows = Math.ceil(getWaveMonsters(wave).length / 8);
-
   return (
     <div className="fixed inset-0 bg-gradient-to-b from-blue-300 to-purple-400 flex flex-col play-area-container"
          style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
@@ -742,12 +804,6 @@ const DivisionMonsterGame = () => {
         <div className="absolute bottom-2 right-2 text-xs text-gray-500 opacity-50">
           {VERSION}
         </div>
-        
-        {/* <div className="absolute top-2 left-2 text-xs bg-black bg-opacity-70 text-white p-2 font-mono rounded z-30">
-          <div>Wave: {wave}</div>
-          <div>Monsters: {monsters.length}</div>
-          <div>Max Rows: {maxRows}</div>
-        </div> */}
       </div>
 
       <div className="flex-none bg-white rounded-t-xl mx-2 mb-2 p-2 shadow-lg">
