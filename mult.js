@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-// v0.1.0 - Initial release: Time-based multiplication quiz game
-// feat: v0.1.0 - Time-based multiplication quiz with visual factor hints
+// v0.1.1 - Show ? in colored circle as hint, unify shapes and sizes
+// feat: v0.1.1 - Show ? in colored circle, 4 choices, unified circular design
 
 const MultiplyMatch = () => {
   const [gameState, setGameState] = useState('menu');
@@ -12,11 +12,12 @@ const MultiplyMatch = () => {
   const [correctAnswers, setCorrectAnswers] = useState(0);
   const [wrongAnswers, setWrongAnswers] = useState(0);
   const [feedback, setFeedback] = useState(null);
+  const [selectedChoice, setSelectedChoice] = useState(null);
   
   const audioContextRef = useRef(null);
   const timerRef = useRef(null);
 
-  const VERSION = 'v0.1.0';
+  const VERSION = 'v0.1.1';
 
   // Generate all valid products from 1x1 to 9x9
   const generateAllProducts = () => {
@@ -194,9 +195,8 @@ const MultiplyMatch = () => {
     // Pick one correct answer
     const correctPair = correctPairs[Math.floor(Math.random() * correctPairs.length)];
     
-    // Generate 2-3 wrong choices
-    const wrongCount = Math.random() < 0.5 ? 2 : 3;
-    const wrongChoices = generateWrongChoices(product, correctPairs, wrongCount);
+    // Always generate 3 wrong choices for total of 4 options
+    const wrongChoices = generateWrongChoices(product, correctPairs, 3);
     
     // Combine and shuffle
     const allChoices = [
@@ -207,6 +207,7 @@ const MultiplyMatch = () => {
     setTargetNumber(product);
     setChoices(allChoices);
     setFeedback(null);
+    setSelectedChoice(null);
   };
 
   const startGame = () => {
@@ -237,6 +238,8 @@ const MultiplyMatch = () => {
   const handleChoice = (choice) => {
     if (feedback) return; // Prevent multiple clicks
     
+    setSelectedChoice(choice);
+    
     if (choice.isCorrect) {
       playSound('correct');
       setScore(s => s + 100);
@@ -254,6 +257,7 @@ const MultiplyMatch = () => {
       
       setTimeout(() => {
         setFeedback(null);
+        setSelectedChoice(null);
       }, 800);
     }
   };
@@ -373,13 +377,19 @@ const MultiplyMatch = () => {
             const color = getNumberColor(choice.product);
             const isCorrectChoice = choice.isCorrect;
             const showResult = feedback !== null;
+            const wasSelected = selectedChoice === choice;
             
             let buttonStyle = 'bg-white hover:bg-gray-50';
             if (showResult && isCorrectChoice) {
               buttonStyle = 'bg-green-200 border-4 border-green-500';
-            } else if (showResult && feedback === 'wrong') {
+            } else if (showResult && wasSelected && !isCorrectChoice) {
+              buttonStyle = 'bg-red-100 border-4 border-red-500';
+            } else if (showResult) {
               buttonStyle = 'bg-gray-100';
             }
+            
+            // Show actual number only after selection if it was the selected choice
+            const showAnswer = wasSelected && showResult;
             
             return (
               <button
@@ -390,7 +400,7 @@ const MultiplyMatch = () => {
               >
                 <div className="flex items-center justify-center gap-3">
                   <div 
-                    className="rounded-lg w-12 h-12 flex items-center justify-center text-white font-bold text-lg"
+                    className="rounded-full w-16 h-16 flex items-center justify-center text-white font-bold text-2xl shadow-md"
                     style={{
                       background: getNumberColor(choice.a).rgb,
                       backgroundImage: getNumberColor(choice.a).pattern,
@@ -401,7 +411,7 @@ const MultiplyMatch = () => {
                   </div>
                   <span className="text-3xl font-bold text-gray-700">×</span>
                   <div 
-                    className="rounded-lg w-12 h-12 flex items-center justify-center text-white font-bold text-lg"
+                    className="rounded-full w-16 h-16 flex items-center justify-center text-white font-bold text-2xl shadow-md"
                     style={{
                       background: getNumberColor(choice.b).rgb,
                       backgroundImage: getNumberColor(choice.b).pattern,
@@ -410,16 +420,16 @@ const MultiplyMatch = () => {
                   >
                     {choice.b}
                   </div>
-                  <span className="text-2xl text-gray-500">=</span>
+                  <span className="text-3xl font-bold text-gray-500">=</span>
                   <div 
-                    className="rounded-lg w-14 h-14 flex items-center justify-center text-white font-bold text-xl"
+                    className="rounded-full w-16 h-16 flex items-center justify-center text-white font-bold text-2xl shadow-md"
                     style={{
                       background: color.rgb,
                       backgroundImage: color.pattern,
                       backgroundSize: '4px 4px'
                     }}
                   >
-                    {choice.product}
+                    {showAnswer ? choice.product : '?'}
                   </div>
                 </div>
               </button>
