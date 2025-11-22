@@ -26,7 +26,15 @@ const MentalMathGame = () => {
   // localStorage記録
   const [stats, setStats] = useState(() => {
     const saved = localStorage.getItem('mentalMathStats');
-    return saved ? JSON.parse(saved) : {
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      // 99x9が存在しない場合は追加
+      if (!parsed['99x9']) {
+        parsed['99x9'] = { total: 0, correct: 0, avgTime: 0 };
+      }
+      return parsed;
+    }
+    return {
       '9x9': { total: 0, correct: 0, avgTime: 0 },
       '20x20': { total: 0, correct: 0, avgTime: 0 },
       '99x9': { total: 0, correct: 0, avgTime: 0 }
@@ -323,7 +331,7 @@ const MentalMathGame = () => {
     return (
       <div className="fixed inset-0 bg-gradient-to-b from-blue-300 to-purple-400 flex items-center justify-center p-4"
            style={{ paddingBottom: `calc(1rem + env(safe-area-inset-bottom))` }}>
-        <div className="w-full max-w-lg flex flex-col">{/* 残りは同じ */}
+        <div className="w-full max-w-lg flex flex-col">
           {/* ヘッダー */}
           <div className="bg-white rounded-xl p-3 mb-4 shadow-lg">
             <div className="flex justify-between items-center text-sm">
@@ -443,7 +451,7 @@ const MentalMathGame = () => {
     return (
       <div className="fixed inset-0 bg-gradient-to-b from-blue-300 to-purple-400 flex items-center justify-center p-4"
            style={{ paddingBottom: `calc(1rem + env(safe-area-inset-bottom))` }}>
-        <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl text-center">{/* 残りは同じ */}
+        <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl text-center">
           <div className="text-7xl mb-4">🎉</div>
           
           <h2 className="text-4xl font-bold mb-4 text-green-600">
