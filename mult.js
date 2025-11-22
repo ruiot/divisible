@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-// v0.1.3 - Fix pattern visibility by using backgroundColor instead of background
-// fix: v0.1.3 - backgroundColor/backgroundImage separation, ensure 2x2 grid layout
+// v0.1.4 - Add infinite loop protection in choice generation
+// fix: v0.1.4 - Prevent infinite loop with max attempts, fallback to 13x13 indicator
 
 // Generate all valid products from 1x1 to 9x9 (outside component to avoid re-calculation)
 const generateAllProducts = () => {
@@ -30,7 +30,7 @@ const MultiplyMatch = () => {
   const audioContextRef = useRef(null);
   const timerRef = useRef(null);
 
-  const VERSION = 'v0.1.3';
+  const VERSION = 'v0.1.4';
 
   const initAudio = () => {
     if (!audioContextRef.current) {
@@ -141,7 +141,11 @@ const MultiplyMatch = () => {
     // Add correct products to used set
     correctPairs.forEach(([a, b]) => used.add(`${a}×${b}`));
     
-    while (wrong.length < count) {
+    let attempts = 0;
+    const maxAttempts = 1000;
+    
+    while (wrong.length < count && attempts < maxAttempts) {
+      attempts++;
       const strategy = Math.random();
       
       if (strategy < 0.5) {
@@ -182,6 +186,11 @@ const MultiplyMatch = () => {
           used.add(key);
         }
       }
+    }
+    
+    // Fallback: if couldn't generate enough wrong choices, add 13×13 (bug indicator)
+    while (wrong.length < count) {
+      wrong.push({ a: 13, b: 13, product: 169 });
     }
     
     return wrong;
