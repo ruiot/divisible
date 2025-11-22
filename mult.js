@@ -3,6 +3,19 @@ import React, { useState, useEffect, useRef } from 'react';
 // v0.1.1 - Show ? in colored circle as hint, unify shapes and sizes
 // feat: v0.1.1 - Show ? in colored circle, 4 choices, unified circular design
 
+// Generate all valid products from 1x1 to 9x9 (outside component to avoid re-calculation)
+const generateAllProducts = () => {
+  const products = new Set();
+  for (let i = 1; i <= 9; i++) {
+    for (let j = 1; j <= 9; j++) {
+      products.add(i * j);
+    }
+  }
+  return Array.from(products).sort((a, b) => a - b);
+};
+
+const allProducts = generateAllProducts();
+
 const MultiplyMatch = () => {
   const [gameState, setGameState] = useState('menu');
   const [targetNumber, setTargetNumber] = useState(null);
@@ -18,19 +31,6 @@ const MultiplyMatch = () => {
   const timerRef = useRef(null);
 
   const VERSION = 'v0.1.1';
-
-  // Generate all valid products from 1x1 to 9x9
-  const generateAllProducts = () => {
-    const products = new Set();
-    for (let i = 1; i <= 9; i++) {
-      for (let j = 1; j <= 9; j++) {
-        products.add(i * j);
-      }
-    }
-    return Array.from(products).sort((a, b) => a - b);
-  };
-
-  const allProducts = generateAllProducts();
 
   const initAudio = () => {
     if (!audioContextRef.current) {
@@ -404,7 +404,7 @@ const MultiplyMatch = () => {
                     style={{
                       background: getNumberColor(choice.a).rgb,
                       backgroundImage: getNumberColor(choice.a).pattern,
-                      backgroundSize: '4px 4px'
+                      backgroundSize: '6px 6px'
                     }}
                   >
                     {choice.a}
@@ -415,7 +415,7 @@ const MultiplyMatch = () => {
                     style={{
                       background: getNumberColor(choice.b).rgb,
                       backgroundImage: getNumberColor(choice.b).pattern,
-                      backgroundSize: '4px 4px'
+                      backgroundSize: '6px 6px'
                     }}
                   >
                     {choice.b}
@@ -426,7 +426,7 @@ const MultiplyMatch = () => {
                     style={{
                       background: color.rgb,
                       backgroundImage: color.pattern,
-                      backgroundSize: '4px 4px'
+                      backgroundSize: '6px 6px'
                     }}
                   >
                     {showAnswer ? choice.product : '?'}
