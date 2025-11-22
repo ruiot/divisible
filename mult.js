@@ -1,23 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-// v0.1.4 - Add infinite loop protection in choice generation
-// fix: v0.1.4 - Prevent infinite loop with max attempts, fallback to 13x13 indicator
+// v0.2.0 - Add 4 game modes: 9x9/20x20 with Easy/Hard difficulty
+// feat: v0.2.0 - Game mode selection, range up to 20x20, hints toggle
 
-// Generate all valid products from 1x1 to 9x9 (outside component to avoid re-calculation)
-const generateAllProducts = () => {
+// Generate all valid products from 1x1 to specified max
+const generateAllProducts = (maxNum) => {
   const products = new Set();
-  for (let i = 1; i <= 9; i++) {
-    for (let j = 1; j <= 9; j++) {
+  for (let i = 1; i <= maxNum; i++) {
+    for (let j = 1; j <= maxNum; j++) {
       products.add(i * j);
     }
   }
   return Array.from(products).sort((a, b) => a - b);
 };
 
-const allProducts = generateAllProducts();
-
 const MultiplyMatch = () => {
   const [gameState, setGameState] = useState('menu');
+  const [gameMode, setGameMode] = useState(null); // '9-easy', '9-hard', '20-easy', '20-hard'
   const [targetNumber, setTargetNumber] = useState(null);
   const [choices, setChoices] = useState([]);
   const [score, setScore] = useState(0);
@@ -30,7 +29,11 @@ const MultiplyMatch = () => {
   const audioContextRef = useRef(null);
   const timerRef = useRef(null);
 
-  const VERSION = 'v0.1.4';
+  const VERSION = 'v0.2.0';
+
+  // Get max number and show hints based on mode
+  const getMaxNum = () => gameMode?.startsWith('20') ? 20 : 9;
+  const showHints = () => gameMode?.endsWith('easy');
 
   const initAudio = () => {
     if (!audioContextRef.current) {
@@ -120,11 +123,11 @@ const MultiplyMatch = () => {
     };
   };
 
-  // Get all valid factor pairs for a number
-  const getFactorPairs = (num) => {
+  // Get all valid factor pairs for a number within range
+  const getFactorPairs = (num, maxNum) => {
     const pairs = [];
-    for (let i = 1; i <= 9; i++) {
-      for (let j = 1; j <= 9; j++) {
+    for (let i = 1; i <= maxNum; i++) {
+      for (let j = 1; j <= maxNum; j++) {
         if (i * j === num) {
           pairs.push([i, j]);
         }
@@ -134,7 +137,7 @@ const MultiplyMatch = () => {
   };
 
   // Generate wrong choices (near numbers or similar factors)
-  const generateWrongChoices = (correctNum, correctPairs, count) => {
+  const generateWrongChoices = (correctNum, correctPairs, count, maxNum) => {
     const wrong = [];
     const used = new Set();
     
@@ -143,6 +146,7 @@ const MultiplyMatch = () => {
     
     let attempts = 0;
     const maxAttempts = 1000;
+    const maxProduct = maxNum * maxNum;
     
     while (wrong.length < count && attempts < maxAttempts) {
       attempts++;
@@ -155,8 +159,8 @@ const MultiplyMatch = () => {
           (Math.random() < 0.5 ? -1 : -2);
         const nearNum = correctNum + offset;
         
-        if (nearNum >= 1 && nearNum <= 81) {
-          const pairs = getFactorPairs(nearNum);
+        if (nearNum >= 1 && nearNum <= maxProduct) {
+          const pairs = getFactorPairs(nearNum, maxNum);
           if (pairs.length > 0) {
             const [a, b] = pairs[Math.floor(Math.random() * pairs.length)];
             const key = `${a}×${b}`;
@@ -175,8 +179,8 @@ const MultiplyMatch = () => {
         const modifyFirst = Math.random() < 0.5;
         const delta = Math.random() < 0.5 ? 1 : -1;
         
-        const a = modifyFirst ? Math.max(1, Math.min(9, ca + delta)) : ca;
-        const b = modifyFirst ? cb : Math.max(1, Math.min(9, cb + delta));
+        const a = modifyFirst ? Math.max(1, Math.min(maxNum, ca + delta)) : ca;
+        const b = modifyFirst ? cb : Math.max(1, Math.min(maxNum, cb + delta));
         
         const key = `${a}×${b}`;
         const product = a * b;
@@ -197,15 +201,18 @@ const MultiplyMatch = () => {
   };
 
   const generateQuestion = () => {
+    const maxNum = getMaxNum();
+    const allProducts = generateAllProducts(maxNum);
+    
     // Pick random product
     const product = allProducts[Math.floor(Math.random() * allProducts.length)];
-    const correctPairs = getFactorPairs(product);
+    const correctPairs = getFactorPairs(product, maxNum);
     
     // Pick one correct answer
     const correctPair = correctPairs[Math.floor(Math.random() * correctPairs.length)];
     
     // Always generate 3 wrong choices for total of 4 options
-    const wrongChoices = generateWrongChoices(product, correctPairs, 3);
+    const wrongChoices = generateWrongChoices(product, correctPairs, 3, maxNum);
     
     // Combine and shuffle
     const allChoices = [
@@ -219,19 +226,22 @@ const MultiplyMatch = () => {
     setSelectedChoice(null);
   };
 
-  const startGame = () => {
+  const startGame = (mode) => {
     // Clear existing timer to prevent accumulation
     if (timerRef.current) {
       clearInterval(timerRef.current);
     }
     
     initAudio();
+    setGameMode(mode);
     setScore(0);
     setCorrectAnswers(0);
     setWrongAnswers(0);
     setTimeLeft(60);
     setGameState('playing');
-    generateQuestion();
+    
+    // Need to wait for gameMode to be set before generating question
+    setTimeout(() => generateQuestion(), 0);
     
     // Start timer
     timerRef.current = setInterval(() => {
@@ -291,25 +301,52 @@ const MultiplyMatch = () => {
           <h1 className="text-5xl font-bold text-center mb-4 text-green-600">
             Multiply Match
           </h1>
-          <p className="text-center mb-8 text-gray-600">
+          <p className="text-center mb-6 text-gray-600">
             Find the Right Expression!
           </p>
           
-          <div className="bg-gray-100 rounded-xl p-4 mb-6 text-sm text-gray-700">
-            <p className="mb-2">📋 <strong>How to Play:</strong></p>
-            <ul className="list-disc list-inside space-y-1 ml-2">
-              <li>A number will be shown</li>
-              <li>Pick the correct expression</li>
-              <li>Answer as many as you can in 60 seconds!</li>
-            </ul>
+          <div className="mb-6">
+            <h2 className="text-lg font-bold text-gray-700 mb-3 flex items-center gap-2">
+              📚 Elementary (9×9)
+            </h2>
+            <div className="grid grid-cols-2 gap-3 mb-6">
+              <button
+                onClick={() => startGame('9-easy')}
+                className="bg-gradient-to-br from-green-300 to-green-400 text-white py-4 rounded-xl font-bold hover:from-green-400 hover:to-green-500 transition transform hover:scale-105 shadow-lg"
+              >
+                Easy<br/>
+                <span className="text-sm opacity-90">(with hints)</span>
+              </button>
+              <button
+                onClick={() => startGame('9-hard')}
+                className="bg-gradient-to-br from-orange-300 to-orange-400 text-white py-4 rounded-xl font-bold hover:from-orange-400 hover:to-orange-500 transition transform hover:scale-105 shadow-lg"
+              >
+                Hard<br/>
+                <span className="text-sm opacity-90">(no hints)</span>
+              </button>
+            </div>
+            
+            <h2 className="text-lg font-bold text-gray-700 mb-3 flex items-center gap-2">
+              🎓 Advanced (20×20)
+            </h2>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => startGame('20-easy')}
+                className="bg-gradient-to-br from-blue-400 to-blue-500 text-white py-4 rounded-xl font-bold hover:from-blue-500 hover:to-blue-600 transition transform hover:scale-105 shadow-lg"
+              >
+                Easy<br/>
+                <span className="text-sm opacity-90">(with hints)</span>
+              </button>
+              <button
+                onClick={() => startGame('20-hard')}
+                className="bg-gradient-to-br from-purple-400 to-purple-500 text-white py-4 rounded-xl font-bold hover:from-purple-500 hover:to-purple-600 transition transform hover:scale-105 shadow-lg"
+              >
+                Hard<br/>
+                <span className="text-sm opacity-90">(no hints)</span>
+              </button>
+            </div>
           </div>
           
-          <button
-            onClick={startGame}
-            className="w-full bg-gradient-to-r from-green-400 to-blue-500 text-white py-6 rounded-xl font-bold text-2xl hover:from-green-500 hover:to-blue-600 transition transform hover:scale-105 shadow-lg"
-          >
-            Start
-          </button>
           <div className="mt-4 text-center text-xs text-gray-400">
             {VERSION}
           </div>
@@ -329,7 +366,7 @@ const MultiplyMatch = () => {
           
           <div className="space-y-3">
             <button
-              onClick={startGame}
+              onClick={() => startGame(gameMode)}
               className="w-full bg-gradient-to-r from-green-400 to-blue-500 text-white py-4 rounded-xl font-bold text-lg hover:from-green-500 hover:to-blue-600 transition"
             >
               Play Again
@@ -433,17 +470,21 @@ const MultiplyMatch = () => {
                   >
                     {choice.b}
                   </div>
-                  <span className="text-3xl font-bold text-gray-500">=</span>
-                  <div 
-                    className="rounded-full w-16 h-16 flex items-center justify-center text-white font-bold text-2xl shadow-md"
-                    style={{
-                      backgroundColor: color.rgb,
-                      backgroundImage: color.pattern,
-                      backgroundSize: '6px 6px'
-                    }}
-                  >
-                    {showAnswer ? choice.product : '?'}
-                  </div>
+                  {showHints() && (
+                    <>
+                      <span className="text-3xl font-bold text-gray-500">=</span>
+                      <div 
+                        className="rounded-full w-16 h-16 flex items-center justify-center text-white font-bold text-2xl shadow-md"
+                        style={{
+                          backgroundColor: color.rgb,
+                          backgroundImage: color.pattern,
+                          backgroundSize: '6px 6px'
+                        }}
+                      >
+                        {showAnswer ? choice.product : '?'}
+                      </div>
+                    </>
+                  )}
                 </div>
               </button>
             );
