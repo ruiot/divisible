@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-// v0.1.1 - Show ? in colored circle as hint, unify shapes and sizes
-// feat: v0.1.1 - Show ? in colored circle, 4 choices, unified circular design
+// v0.1.2 - Fix critical timer leak causing browser freeze, fix pattern display
+// fix: v0.1.2 - Clear old timer before starting new game, unify pattern size to 6px
 
 // Generate all valid products from 1x1 to 9x9 (outside component to avoid re-calculation)
 const generateAllProducts = () => {
@@ -30,7 +30,7 @@ const MultiplyMatch = () => {
   const audioContextRef = useRef(null);
   const timerRef = useRef(null);
 
-  const VERSION = 'v0.1.1';
+  const VERSION = 'v0.1.2';
 
   const initAudio = () => {
     if (!audioContextRef.current) {
@@ -211,6 +211,11 @@ const MultiplyMatch = () => {
   };
 
   const startGame = () => {
+    // Clear existing timer to prevent accumulation
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+    }
+    
     initAudio();
     setScore(0);
     setCorrectAnswers(0);
@@ -362,8 +367,7 @@ const MultiplyMatch = () => {
                 fontSize: `${displaySize / 2.5}px`,
                 background: targetColor.rgb,
                 backgroundImage: targetColor.pattern,
-                backgroundSize: targetColor.pattern.includes('radial') ? '6px 6px' : 
-                               targetColor.pattern.includes('conic') ? '6px 6px' : 'auto'
+                backgroundSize: '6px 6px'
               }}
             >
               {targetNumber}
