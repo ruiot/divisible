@@ -1,10 +1,10 @@
-// mental_math.js v0.3.3
-// feat: v0.3.3 - Normalize 19x19 problems, move debug display to bottom
+// mental_math.js v0.3.4
+// feat: v0.3.4 - Remove normalization, add duplicate prevention, fix layout
 
 import React, { useState, useEffect, useRef } from 'react';
 
 const MentalMathGame = () => {
-  const VERSION = 'v0.3.3';
+  const VERSION = 'v0.3.4';
   const TOTAL_PROBLEMS = 20;
 
   // 基本設定
@@ -22,6 +22,9 @@ const MentalMathGame = () => {
   
   // デバッグ用: 問題履歴
   const [problemHistory, setProblemHistory] = useState([]);
+  
+  // 重複防止用: 使用済み問題のセット
+  const [usedProblems, setUsedProblems] = useState(new Set());
   
   // フィードバック表示
   const [feedback, setFeedback] = useState(null); // { type: 'correct' | 'incorrect' }
@@ -109,8 +112,6 @@ const MentalMathGame = () => {
     } else if (selectedMode === '19x19') {
       a = Math.floor(Math.random() * 9) + 11; // 11-19
       b = Math.floor(Math.random() * 9) + 11; // 11-19
-      // 正規化: 小さい方を先にする（重複削減）
-      if (a > b) [a, b] = [b, a];
     } else if (selectedMode === '99x9') {
       a = Math.floor(Math.random() * 90) + 10; // 10-99
       b = Math.floor(Math.random() * 8) + 2;   // 2-9
@@ -119,6 +120,21 @@ const MentalMathGame = () => {
       b = Math.floor(Math.random() * 90) + 10; // 10-99
     }
     return { a, b, answer: a * b };
+  };
+
+  // 重複のない問題生成
+  const generateUniqueProblem = (selectedMode, usedSet) => {
+    let problem;
+    let attempts = 0;
+    
+    do {
+      problem = generateProblem(selectedMode);
+      attempts++;
+      // 100回試行しても見つからない場合は重複を許可
+      if (attempts > 100) break;
+    } while (usedSet.has(`${problem.a}×${problem.b}`));
+    
+    return problem;
   };
 
   // ゲーム開始
@@ -133,7 +149,14 @@ const MentalMathGame = () => {
     setUserAnswer('');
     setFeedback(null);
     setProblemHistory([]); // 履歴リセット
-    const problem = generateProblem(selectedMode);
+    
+    const newUsedProblems = new Set();
+    setUsedProblems(newUsedProblems);
+    
+    const problem = generateUniqueProblem(selectedMode, newUsedProblems);
+    newUsedProblems.add(`${problem.a}×${problem.b}`);
+    setUsedProblems(new Set(newUsedProblems));
+    
     setProblemHistory([`${problem.a}×${problem.b}`]); // 初回問題を記録
     setCurrentProblem(problem);
     setStartTime(Date.now());
@@ -187,10 +210,18 @@ const MentalMathGame = () => {
         } else {
           // 次の問題
           setProblemIndex(problemIndex + 1);
-          const problem = generateProblem(mode);
-          setProblemHistory(prev => [...prev, `${problem.a}×${problem.b}`]); // 履歴に追加
-          setCurrentProblem(problem);
-          setStartTime(Date.now());
+          
+          setUsedProblems(currentUsed => {
+            const newUsed = new Set(currentUsed);
+            const problem = generateUniqueProblem(mode, newUsed);
+            newUsed.add(`${problem.a}×${problem.b}`);
+            
+            setProblemHistory(prev => [...prev, `${problem.a}×${problem.b}`]); // 履歴に追加
+            setCurrentProblem(problem);
+            setStartTime(Date.now());
+            
+            return newUsed;
+          });
         }
       }, 300);
     } else {
@@ -364,9 +395,9 @@ const MentalMathGame = () => {
 
     return (
       <div className="fixed inset-0 bg-gradient-to-b from-blue-300 to-purple-400 overflow-auto">
-        <div className="min-h-full flex flex-col justify-center p-3 py-6"
-             style={{ paddingBottom: `calc(1.5rem + env(safe-area-inset-bottom))` }}>
-          <div className="w-full max-w-lg mx-auto flex flex-col gap-3">
+        <div className="min-h-full flex flex-col justify-center p-2 py-4"
+             style={{ paddingBottom: `calc(1rem + env(safe-area-inset-bottom))` }}>
+          <div className="w-full max-w-lg mx-auto flex flex-col gap-2">
           {/* ヘッダー */}
           <div className="bg-white rounded-xl p-2 shadow-lg">
             <div className="flex justify-between items-center text-xs sm:text-sm">
@@ -384,12 +415,12 @@ const MentalMathGame = () => {
           </div>
 
           {/* 問題表示 */}
-          <div className="bg-white rounded-xl p-6 shadow-lg relative">
+          <div className="bg-white rounded-xl p-4 sm:p-6 shadow-lg relative">
             <div className="text-center">
-              <div className="text-4xl sm:text-5xl font-bold text-gray-800 mb-3">
+              <div className="text-3xl sm:text-4xl font-bold text-gray-800 mb-2">
                 {currentProblem.a} × {currentProblem.b}
               </div>
-              <div className="text-2xl sm:text-3xl font-mono text-blue-600 min-h-[2.5rem] flex items-center justify-center">
+              <div className="text-xl sm:text-2xl font-mono text-blue-600 min-h-[2rem] flex items-center justify-center">
                 {userAnswer || '_'}
               </div>
             </div>
@@ -427,14 +458,14 @@ const MentalMathGame = () => {
           </div>
 
           {/* 電卓UI */}
-          <div className="bg-white rounded-xl p-3 shadow-lg">
-            <div className="grid grid-cols-3 gap-2">
+          <div className="bg-white rounded-xl p-2 shadow-lg">
+            <div className="grid grid-cols-3 gap-1.5">
               {[7, 8, 9, 4, 5, 6, 1, 2, 3].map(num => (
                 <button
                   key={num}
                   onClick={() => inputNumber(num.toString())}
                   disabled={feedback !== null}
-                  className={`aspect-square bg-gradient-to-br ${getButtonStyle(mistakeCount)} rounded-xl text-xl sm:text-2xl font-bold text-gray-700 shadow-md active:scale-95 transition disabled:opacity-50`}
+                  className={`aspect-square bg-gradient-to-br ${getButtonStyle(mistakeCount)} rounded-lg text-lg sm:text-xl font-bold text-gray-700 shadow-md active:scale-95 transition disabled:opacity-50`}
                 >
                   {num}
                 </button>
@@ -443,7 +474,7 @@ const MentalMathGame = () => {
               <button
                 onClick={clearInput}
                 disabled={feedback !== null}
-                className={`aspect-square bg-gradient-to-br from-red-100 to-red-200 hover:from-red-200 hover:to-red-300 rounded-xl text-lg sm:text-xl font-bold text-red-700 shadow-md active:scale-95 transition disabled:opacity-50`}
+                className={`aspect-square bg-gradient-to-br from-red-100 to-red-200 hover:from-red-200 hover:to-red-300 rounded-lg text-base sm:text-lg font-bold text-red-700 shadow-md active:scale-95 transition disabled:opacity-50`}
               >
                 C
               </button>
@@ -451,7 +482,7 @@ const MentalMathGame = () => {
               <button
                 onClick={() => inputNumber('0')}
                 disabled={feedback !== null}
-                className={`aspect-square bg-gradient-to-br ${getButtonStyle(mistakeCount)} rounded-xl text-xl sm:text-2xl font-bold text-gray-700 shadow-md active:scale-95 transition disabled:opacity-50`}
+                className={`aspect-square bg-gradient-to-br ${getButtonStyle(mistakeCount)} rounded-lg text-lg sm:text-xl font-bold text-gray-700 shadow-md active:scale-95 transition disabled:opacity-50`}
               >
                 0
               </button>
@@ -459,7 +490,7 @@ const MentalMathGame = () => {
               <button
                 onClick={submitAnswer}
                 disabled={!userAnswer || feedback !== null}
-                className={`aspect-square rounded-xl text-lg sm:text-xl font-bold shadow-md active:scale-95 transition ${
+                className={`aspect-square rounded-lg text-base sm:text-lg font-bold shadow-md active:scale-95 transition ${
                   userAnswer && !feedback
                     ? 'bg-gradient-to-br from-green-400 to-green-500 hover:from-green-500 hover:to-green-600 text-white'
                     : 'bg-gray-200 text-gray-400 cursor-not-allowed'
