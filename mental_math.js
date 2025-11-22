@@ -1,15 +1,15 @@
-// mental_math.js v0.2.0
-// feat: v0.2.0 - Drill-style gameplay, sound effects, button degradation
+// mental_math.js v0.3.0
+// feat: v0.3.0 - Add 99x9 mode, fix safe-area for iPhone/iPad
 
 import React, { useState, useEffect, useRef } from 'react';
 
 const MentalMathGame = () => {
-  const VERSION = 'v0.2.0';
+  const VERSION = 'v0.3.0';
   const TOTAL_PROBLEMS = 20;
 
   // 基本設定
   const [gameState, setGameState] = useState('menu'); // 'menu' | 'playing' | 'finished'
-  const [mode, setMode] = useState(null); // '9x9' | '20x20'
+  const [mode, setMode] = useState(null); // '9x9' | '20x20' | '99x9'
   const [currentProblem, setCurrentProblem] = useState(null);
   const [userAnswer, setUserAnswer] = useState('');
   const [startTime, setStartTime] = useState(null);
@@ -28,7 +28,8 @@ const MentalMathGame = () => {
     const saved = localStorage.getItem('mentalMathStats');
     return saved ? JSON.parse(saved) : {
       '9x9': { total: 0, correct: 0, avgTime: 0 },
-      '20x20': { total: 0, correct: 0, avgTime: 0 }
+      '20x20': { total: 0, correct: 0, avgTime: 0 },
+      '99x9': { total: 0, correct: 0, avgTime: 0 }
     };
   });
 
@@ -86,9 +87,12 @@ const MentalMathGame = () => {
     if (selectedMode === '9x9') {
       a = Math.floor(Math.random() * 9) + 1;
       b = Math.floor(Math.random() * 9) + 1;
-    } else {
+    } else if (selectedMode === '20x20') {
       a = Math.floor(Math.random() * 11) + 10; // 10-20
       b = Math.floor(Math.random() * 11) + 10; // 10-20
+    } else if (selectedMode === '99x9') {
+      a = Math.floor(Math.random() * 90) + 10; // 10-99
+      b = Math.floor(Math.random() * 8) + 2;   // 2-9
     }
     return { a, b, answer: a * b };
   };
@@ -262,6 +266,13 @@ const MentalMathGame = () => {
             >
               20×20 モード
             </button>
+
+            <button
+              onClick={() => startGame('99x9')}
+              className="w-full bg-gradient-to-r from-cyan-400 to-blue-500 text-white py-6 rounded-xl font-bold text-2xl hover:from-cyan-500 hover:to-blue-600 transition transform hover:scale-105 shadow-lg"
+            >
+              99×9 モード
+            </button>
           </div>
 
           {/* 統計表示 */}
@@ -284,6 +295,14 @@ const MentalMathGame = () => {
                     : '未プレイ'}
                 </span>
               </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">99×9:</span>
+                <span className="font-mono">
+                  {stats['99x9'].total > 0 
+                    ? `${stats['99x9'].total}問 - ${(stats['99x9'].avgTime / 1000).toFixed(1)}秒/問`
+                    : '未プレイ'}
+                </span>
+              </div>
             </div>
           </div>
 
@@ -302,8 +321,9 @@ const MentalMathGame = () => {
       : 0;
 
     return (
-      <div className="min-h-screen bg-gradient-to-b from-blue-300 to-purple-400 flex items-center justify-center p-4">
-        <div className="w-full max-w-lg flex flex-col">
+      <div className="fixed inset-0 bg-gradient-to-b from-blue-300 to-purple-400 flex items-center justify-center p-4"
+           style={{ paddingBottom: `calc(1rem + env(safe-area-inset-bottom))` }}>
+        <div className="w-full max-w-lg flex flex-col">{/* 残りは同じ */}
           {/* ヘッダー */}
           <div className="bg-white rounded-xl p-3 mb-4 shadow-lg">
             <div className="flex justify-between items-center text-sm">
@@ -421,8 +441,9 @@ const MentalMathGame = () => {
     const avgTime = totalTime / TOTAL_PROBLEMS;
 
     return (
-      <div className="min-h-screen bg-gradient-to-b from-blue-300 to-purple-400 flex items-center justify-center p-4">
-        <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl text-center">
+      <div className="fixed inset-0 bg-gradient-to-b from-blue-300 to-purple-400 flex items-center justify-center p-4"
+           style={{ paddingBottom: `calc(1rem + env(safe-area-inset-bottom))` }}>
+        <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl text-center">{/* 残りは同じ */}
           <div className="text-7xl mb-4">🎉</div>
           
           <h2 className="text-4xl font-bold mb-4 text-green-600">
