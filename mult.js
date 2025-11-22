@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-// v0.1.2 - Fix critical timer leak causing browser freeze, fix pattern display
-// fix: v0.1.2 - Clear old timer before starting new game, unify pattern size to 6px
+// v0.1.3 - Fix pattern visibility by using backgroundColor instead of background
+// fix: v0.1.3 - backgroundColor/backgroundImage separation, ensure 2x2 grid layout
 
 // Generate all valid products from 1x1 to 9x9 (outside component to avoid re-calculation)
 const generateAllProducts = () => {
@@ -30,7 +30,7 @@ const MultiplyMatch = () => {
   const audioContextRef = useRef(null);
   const timerRef = useRef(null);
 
-  const VERSION = 'v0.1.2';
+  const VERSION = 'v0.1.3';
 
   const initAudio = () => {
     if (!audioContextRef.current) {
@@ -365,7 +365,7 @@ const MultiplyMatch = () => {
                 width: `${displaySize}px`,
                 height: `${displaySize}px`,
                 fontSize: `${displaySize / 2.5}px`,
-                background: targetColor.rgb,
+                backgroundColor: targetColor.rgb,
                 backgroundImage: targetColor.pattern,
                 backgroundSize: '6px 6px'
               }}
@@ -406,7 +406,7 @@ const MultiplyMatch = () => {
                   <div 
                     className="rounded-full w-16 h-16 flex items-center justify-center text-white font-bold text-2xl shadow-md"
                     style={{
-                      background: getNumberColor(choice.a).rgb,
+                      backgroundColor: getNumberColor(choice.a).rgb,
                       backgroundImage: getNumberColor(choice.a).pattern,
                       backgroundSize: '6px 6px'
                     }}
@@ -417,7 +417,7 @@ const MultiplyMatch = () => {
                   <div 
                     className="rounded-full w-16 h-16 flex items-center justify-center text-white font-bold text-2xl shadow-md"
                     style={{
-                      background: getNumberColor(choice.b).rgb,
+                      backgroundColor: getNumberColor(choice.b).rgb,
                       backgroundImage: getNumberColor(choice.b).pattern,
                       backgroundSize: '6px 6px'
                     }}
@@ -428,7 +428,7 @@ const MultiplyMatch = () => {
                   <div 
                     className="rounded-full w-16 h-16 flex items-center justify-center text-white font-bold text-2xl shadow-md"
                     style={{
-                      background: color.rgb,
+                      backgroundColor: color.rgb,
                       backgroundImage: color.pattern,
                       backgroundSize: '6px 6px'
                     }}
