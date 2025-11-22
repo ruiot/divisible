@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-// v0.2.0 - Add 4 game modes: 9x9/20x20 with Easy/Hard difficulty
-// feat: v0.2.0 - Game mode selection, range up to 20x20, hints toggle
+// v0.2.1 - Fix startup freeze by passing mode directly to generateQuestion
+// fix: v0.2.1 - Resolve state timing issue causing freeze on game start
 
 // Generate all valid products from 1x1 to specified max
 const generateAllProducts = (maxNum) => {
@@ -29,7 +29,7 @@ const MultiplyMatch = () => {
   const audioContextRef = useRef(null);
   const timerRef = useRef(null);
 
-  const VERSION = 'v0.2.0';
+  const VERSION = 'v0.2.1';
 
   // Get max number and show hints based on mode
   const getMaxNum = () => gameMode?.startsWith('20') ? 20 : 9;
@@ -200,8 +200,9 @@ const MultiplyMatch = () => {
     return wrong;
   };
 
-  const generateQuestion = () => {
-    const maxNum = getMaxNum();
+  const generateQuestion = (mode) => {
+    const currentMode = mode || gameMode;
+    const maxNum = currentMode?.startsWith('20') ? 20 : 9;
     const allProducts = generateAllProducts(maxNum);
     
     // Pick random product
@@ -240,8 +241,8 @@ const MultiplyMatch = () => {
     setTimeLeft(60);
     setGameState('playing');
     
-    // Need to wait for gameMode to be set before generating question
-    setTimeout(() => generateQuestion(), 0);
+    // Generate question with mode parameter
+    generateQuestion(mode);
     
     // Start timer
     timerRef.current = setInterval(() => {
