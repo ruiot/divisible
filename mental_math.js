@@ -1,15 +1,15 @@
-// mental_math.js v0.3.1
-// feat: v0.3.1 - Add 99x99 mode, debug display, fix layout
+// mental_math.js v0.3.2
+// feat: v0.3.2 - Adjust ranges (9x9: 2-9, 19x19: 11-19)
 
 import React, { useState, useEffect, useRef } from 'react';
 
 const MentalMathGame = () => {
-  const VERSION = 'v0.3.1';
+  const VERSION = 'v0.3.2';
   const TOTAL_PROBLEMS = 20;
 
   // 基本設定
   const [gameState, setGameState] = useState('menu'); // 'menu' | 'playing' | 'finished'
-  const [mode, setMode] = useState(null); // '9x9' | '20x20' | '99x9' | '99x99'
+  const [mode, setMode] = useState(null); // '9x9' | '19x19' | '99x9' | '99x99'
   const [currentProblem, setCurrentProblem] = useState(null);
   const [userAnswer, setUserAnswer] = useState('');
   const [startTime, setStartTime] = useState(null);
@@ -31,7 +31,11 @@ const MentalMathGame = () => {
     const saved = localStorage.getItem('mentalMathStats');
     if (saved) {
       const parsed = JSON.parse(saved);
-      // 99x9, 99x99が存在しない場合は追加
+      // 新しいモードが存在しない場合は追加
+      if (!parsed['19x19']) {
+        // 20x20のデータを19x19に移行
+        parsed['19x19'] = parsed['20x20'] || { total: 0, correct: 0, avgTime: 0 };
+      }
       if (!parsed['99x9']) {
         parsed['99x9'] = { total: 0, correct: 0, avgTime: 0 };
       }
@@ -42,7 +46,7 @@ const MentalMathGame = () => {
     }
     return {
       '9x9': { total: 0, correct: 0, avgTime: 0 },
-      '20x20': { total: 0, correct: 0, avgTime: 0 },
+      '19x19': { total: 0, correct: 0, avgTime: 0 },
       '99x9': { total: 0, correct: 0, avgTime: 0 },
       '99x99': { total: 0, correct: 0, avgTime: 0 }
     };
@@ -100,11 +104,11 @@ const MentalMathGame = () => {
   const generateProblem = (selectedMode) => {
     let a, b;
     if (selectedMode === '9x9') {
-      a = Math.floor(Math.random() * 9) + 1;
-      b = Math.floor(Math.random() * 9) + 1;
-    } else if (selectedMode === '20x20') {
-      a = Math.floor(Math.random() * 11) + 10; // 10-20
-      b = Math.floor(Math.random() * 11) + 10; // 10-20
+      a = Math.floor(Math.random() * 8) + 2;  // 2-9
+      b = Math.floor(Math.random() * 8) + 2;  // 2-9
+    } else if (selectedMode === '19x19') {
+      a = Math.floor(Math.random() * 9) + 11; // 11-19
+      b = Math.floor(Math.random() * 9) + 11; // 11-19
     } else if (selectedMode === '99x9') {
       a = Math.floor(Math.random() * 90) + 10; // 10-99
       b = Math.floor(Math.random() * 8) + 2;   // 2-9
@@ -282,10 +286,10 @@ const MentalMathGame = () => {
             </button>
             
             <button
-              onClick={() => startGame('20x20')}
+              onClick={() => startGame('19x19')}
               className="w-full bg-gradient-to-r from-orange-400 to-red-500 text-white py-6 rounded-xl font-bold text-2xl hover:from-orange-500 hover:to-red-600 transition transform hover:scale-105 shadow-lg"
             >
-              20×20 モード
+              19×19 モード
             </button>
 
             <button
@@ -316,10 +320,10 @@ const MentalMathGame = () => {
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">20×20:</span>
+                <span className="text-gray-600">19×19:</span>
                 <span className="font-mono">
-                  {stats['20x20'].total > 0 
-                    ? `${stats['20x20'].total}問 - ${(stats['20x20'].avgTime / 1000).toFixed(1)}秒/問`
+                  {stats['19x19'].total > 0 
+                    ? `${stats['19x19'].total}問 - ${(stats['19x19'].avgTime / 1000).toFixed(1)}秒/問`
                     : '未プレイ'}
                 </span>
               </div>
