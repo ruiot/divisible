@@ -1,15 +1,15 @@
-// mental_math.js v0.3.0
-// feat: v0.3.0 - Add 99x9 mode, fix safe-area for iPhone/iPad
+// mental_math.js v0.3.1
+// feat: v0.3.1 - Add 99x99 mode, debug display, fix layout
 
 import React, { useState, useEffect, useRef } from 'react';
 
 const MentalMathGame = () => {
-  const VERSION = 'v0.3.0';
+  const VERSION = 'v0.3.1';
   const TOTAL_PROBLEMS = 20;
 
   // 基本設定
   const [gameState, setGameState] = useState('menu'); // 'menu' | 'playing' | 'finished'
-  const [mode, setMode] = useState(null); // '9x9' | '20x20' | '99x9'
+  const [mode, setMode] = useState(null); // '9x9' | '20x20' | '99x9' | '99x99'
   const [currentProblem, setCurrentProblem] = useState(null);
   const [userAnswer, setUserAnswer] = useState('');
   const [startTime, setStartTime] = useState(null);
@@ -20,6 +20,9 @@ const MentalMathGame = () => {
   const [timings, setTimings] = useState([]);
   const [mistakeCount, setMistakeCount] = useState(0);
   
+  // デバッグ用: 問題履歴
+  const [problemHistory, setProblemHistory] = useState([]);
+  
   // フィードバック表示
   const [feedback, setFeedback] = useState(null); // { type: 'correct' | 'incorrect' }
   
@@ -28,16 +31,20 @@ const MentalMathGame = () => {
     const saved = localStorage.getItem('mentalMathStats');
     if (saved) {
       const parsed = JSON.parse(saved);
-      // 99x9が存在しない場合は追加
+      // 99x9, 99x99が存在しない場合は追加
       if (!parsed['99x9']) {
         parsed['99x9'] = { total: 0, correct: 0, avgTime: 0 };
+      }
+      if (!parsed['99x99']) {
+        parsed['99x99'] = { total: 0, correct: 0, avgTime: 0 };
       }
       return parsed;
     }
     return {
       '9x9': { total: 0, correct: 0, avgTime: 0 },
       '20x20': { total: 0, correct: 0, avgTime: 0 },
-      '99x9': { total: 0, correct: 0, avgTime: 0 }
+      '99x9': { total: 0, correct: 0, avgTime: 0 },
+      '99x99': { total: 0, correct: 0, avgTime: 0 }
     };
   });
 
@@ -101,6 +108,9 @@ const MentalMathGame = () => {
     } else if (selectedMode === '99x9') {
       a = Math.floor(Math.random() * 90) + 10; // 10-99
       b = Math.floor(Math.random() * 8) + 2;   // 2-9
+    } else if (selectedMode === '99x99') {
+      a = Math.floor(Math.random() * 90) + 10; // 10-99
+      b = Math.floor(Math.random() * 90) + 10; // 10-99
     }
     return { a, b, answer: a * b };
   };
@@ -116,7 +126,9 @@ const MentalMathGame = () => {
     setMistakeCount(0);
     setUserAnswer('');
     setFeedback(null);
+    setProblemHistory([]); // 履歴リセット
     const problem = generateProblem(selectedMode);
+    setProblemHistory([`${problem.a}×${problem.b}`]); // 初回問題を記録
     setCurrentProblem(problem);
     setStartTime(Date.now());
   };
@@ -170,6 +182,7 @@ const MentalMathGame = () => {
           // 次の問題
           setProblemIndex(problemIndex + 1);
           const problem = generateProblem(mode);
+          setProblemHistory(prev => [...prev, `${problem.a}×${problem.b}`]); // 履歴に追加
           setCurrentProblem(problem);
           setStartTime(Date.now());
         }
@@ -281,6 +294,13 @@ const MentalMathGame = () => {
             >
               99×9 モード
             </button>
+
+            <button
+              onClick={() => startGame('99x99')}
+              className="w-full bg-gradient-to-r from-pink-400 to-purple-500 text-white py-6 rounded-xl font-bold text-2xl hover:from-pink-500 hover:to-purple-600 transition transform hover:scale-105 shadow-lg"
+            >
+              99×99 モード
+            </button>
           </div>
 
           {/* 統計表示 */}
@@ -311,6 +331,14 @@ const MentalMathGame = () => {
                     : '未プレイ'}
                 </span>
               </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">99×99:</span>
+                <span className="font-mono">
+                  {stats['99x99'].total > 0 
+                    ? `${stats['99x99'].total}問 - ${(stats['99x99'].avgTime / 1000).toFixed(1)}秒/問`
+                    : '未プレイ'}
+                </span>
+              </div>
             </div>
           </div>
 
@@ -329,12 +357,13 @@ const MentalMathGame = () => {
       : 0;
 
     return (
-      <div className="fixed inset-0 bg-gradient-to-b from-blue-300 to-purple-400 flex items-center justify-center p-4"
-           style={{ paddingBottom: `calc(1rem + env(safe-area-inset-bottom))` }}>
-        <div className="w-full max-w-lg flex flex-col">
+      <div className="fixed inset-0 bg-gradient-to-b from-blue-300 to-purple-400 overflow-auto">
+        <div className="min-h-full flex flex-col justify-center p-3 py-6"
+             style={{ paddingBottom: `calc(1.5rem + env(safe-area-inset-bottom))` }}>
+          <div className="w-full max-w-lg mx-auto flex flex-col gap-3">
           {/* ヘッダー */}
-          <div className="bg-white rounded-xl p-3 mb-4 shadow-lg">
-            <div className="flex justify-between items-center text-sm">
+          <div className="bg-white rounded-xl p-2 shadow-lg">
+            <div className="flex justify-between items-center text-xs sm:text-sm">
               <button 
                 onClick={backToMenu}
                 className="text-gray-500 hover:text-gray-700"
@@ -349,12 +378,12 @@ const MentalMathGame = () => {
           </div>
 
           {/* 問題表示 */}
-          <div className="bg-white rounded-xl p-8 mb-4 shadow-lg relative">
+          <div className="bg-white rounded-xl p-6 shadow-lg relative">
             <div className="text-center">
-              <div className="text-5xl sm:text-6xl font-bold text-gray-800 mb-4">
+              <div className="text-4xl sm:text-5xl font-bold text-gray-800 mb-3">
                 {currentProblem.a} × {currentProblem.b}
               </div>
-              <div className="text-3xl sm:text-4xl font-mono text-blue-600 min-h-[3rem] flex items-center justify-center">
+              <div className="text-2xl sm:text-3xl font-mono text-blue-600 min-h-[2.5rem] flex items-center justify-center">
                 {userAnswer || '_'}
               </div>
             </div>
@@ -364,7 +393,7 @@ const MentalMathGame = () => {
               <div className={`absolute inset-0 flex items-center justify-center rounded-xl ${
                 feedback.type === 'correct' ? 'bg-green-500' : 'bg-red-500'
               } bg-opacity-90 transition-opacity`}>
-                <div className="text-white text-8xl">
+                <div className="text-white text-7xl">
                   {feedback.type === 'correct' ? '✓' : '✗'}
                 </div>
               </div>
@@ -372,8 +401,8 @@ const MentalMathGame = () => {
           </div>
 
           {/* 統計 */}
-          <div className="bg-white rounded-xl p-3 mb-4 shadow-lg">
-            <div className="flex justify-around text-sm">
+          <div className="bg-white rounded-xl p-2 shadow-lg">
+            <div className="flex justify-around text-xs">
               <div className="text-center">
                 <div className="text-gray-500">正解</div>
                 <div className="font-bold text-green-600">{correctCount}</div>
@@ -391,15 +420,23 @@ const MentalMathGame = () => {
             </div>
           </div>
 
+          {/* デバッグ: 問題履歴 */}
+          <div className="bg-yellow-50 border-2 border-yellow-400 rounded-xl p-2">
+            <div className="text-xs font-bold text-yellow-800 mb-1">問題履歴 (デバッグ用)</div>
+            <div className="text-xs font-mono text-yellow-900 break-all">
+              {problemHistory.join(', ')}
+            </div>
+          </div>
+
           {/* 電卓UI */}
-          <div className="bg-white rounded-xl p-4 shadow-lg">
-            <div className="grid grid-cols-3 gap-2 sm:gap-3">
+          <div className="bg-white rounded-xl p-3 shadow-lg">
+            <div className="grid grid-cols-3 gap-2">
               {[7, 8, 9, 4, 5, 6, 1, 2, 3].map(num => (
                 <button
                   key={num}
                   onClick={() => inputNumber(num.toString())}
                   disabled={feedback !== null}
-                  className={`aspect-square bg-gradient-to-br ${getButtonStyle(mistakeCount)} rounded-xl text-2xl sm:text-3xl font-bold text-gray-700 shadow-md active:scale-95 transition disabled:opacity-50`}
+                  className={`aspect-square bg-gradient-to-br ${getButtonStyle(mistakeCount)} rounded-xl text-xl sm:text-2xl font-bold text-gray-700 shadow-md active:scale-95 transition disabled:opacity-50`}
                 >
                   {num}
                 </button>
@@ -408,7 +445,7 @@ const MentalMathGame = () => {
               <button
                 onClick={clearInput}
                 disabled={feedback !== null}
-                className={`aspect-square bg-gradient-to-br from-red-100 to-red-200 hover:from-red-200 hover:to-red-300 rounded-xl text-xl sm:text-2xl font-bold text-red-700 shadow-md active:scale-95 transition disabled:opacity-50`}
+                className={`aspect-square bg-gradient-to-br from-red-100 to-red-200 hover:from-red-200 hover:to-red-300 rounded-xl text-lg sm:text-xl font-bold text-red-700 shadow-md active:scale-95 transition disabled:opacity-50`}
               >
                 C
               </button>
@@ -416,7 +453,7 @@ const MentalMathGame = () => {
               <button
                 onClick={() => inputNumber('0')}
                 disabled={feedback !== null}
-                className={`aspect-square bg-gradient-to-br ${getButtonStyle(mistakeCount)} rounded-xl text-2xl sm:text-3xl font-bold text-gray-700 shadow-md active:scale-95 transition disabled:opacity-50`}
+                className={`aspect-square bg-gradient-to-br ${getButtonStyle(mistakeCount)} rounded-xl text-xl sm:text-2xl font-bold text-gray-700 shadow-md active:scale-95 transition disabled:opacity-50`}
               >
                 0
               </button>
@@ -424,7 +461,7 @@ const MentalMathGame = () => {
               <button
                 onClick={submitAnswer}
                 disabled={!userAnswer || feedback !== null}
-                className={`aspect-square rounded-xl text-xl sm:text-2xl font-bold shadow-md active:scale-95 transition ${
+                className={`aspect-square rounded-xl text-lg sm:text-xl font-bold shadow-md active:scale-95 transition ${
                   userAnswer && !feedback
                     ? 'bg-gradient-to-br from-green-400 to-green-500 hover:from-green-500 hover:to-green-600 text-white'
                     : 'bg-gray-200 text-gray-400 cursor-not-allowed'
@@ -435,9 +472,10 @@ const MentalMathGame = () => {
             </div>
           </div>
 
-          <div className="mt-4 text-center text-xs text-gray-600">
+          <div className="text-center text-xs text-gray-600">
             キーボード: 数字キー、Enter、Backspace、Esc(クリア)
           </div>
+        </div>
         </div>
       </div>
     );
