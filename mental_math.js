@@ -1,10 +1,10 @@
-// mental_math.js v0.3.2
-// feat: v0.3.2 - Adjust ranges (9x9: 2-9, 19x19: 11-19)
+// mental_math.js v0.3.3
+// feat: v0.3.3 - Normalize 19x19 problems, move debug display to bottom
 
 import React, { useState, useEffect, useRef } from 'react';
 
 const MentalMathGame = () => {
-  const VERSION = 'v0.3.2';
+  const VERSION = 'v0.3.3';
   const TOTAL_PROBLEMS = 20;
 
   // 基本設定
@@ -109,6 +109,8 @@ const MentalMathGame = () => {
     } else if (selectedMode === '19x19') {
       a = Math.floor(Math.random() * 9) + 11; // 11-19
       b = Math.floor(Math.random() * 9) + 11; // 11-19
+      // 正規化: 小さい方を先にする（重複削減）
+      if (a > b) [a, b] = [b, a];
     } else if (selectedMode === '99x9') {
       a = Math.floor(Math.random() * 90) + 10; // 10-99
       b = Math.floor(Math.random() * 8) + 2;   // 2-9
@@ -424,14 +426,6 @@ const MentalMathGame = () => {
             </div>
           </div>
 
-          {/* デバッグ: 問題履歴 */}
-          <div className="bg-yellow-50 border-2 border-yellow-400 rounded-xl p-2">
-            <div className="text-xs font-bold text-yellow-800 mb-1">問題履歴 (デバッグ用)</div>
-            <div className="text-xs font-mono text-yellow-900 break-all">
-              {problemHistory.join(', ')}
-            </div>
-          </div>
-
           {/* 電卓UI */}
           <div className="bg-white rounded-xl p-3 shadow-lg">
             <div className="grid grid-cols-3 gap-2">
@@ -473,6 +467,14 @@ const MentalMathGame = () => {
               >
                 ✓
               </button>
+            </div>
+          </div>
+
+          {/* デバッグ: 問題履歴 */}
+          <div className="bg-yellow-50 border-2 border-yellow-400 rounded-xl p-2">
+            <div className="text-xs font-bold text-yellow-800 mb-1">問題履歴 (デバッグ用)</div>
+            <div className="text-xs font-mono text-yellow-900 break-all">
+              {problemHistory.join(', ')}
             </div>
           </div>
 
