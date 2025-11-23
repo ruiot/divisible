@@ -1,10 +1,10 @@
-// mental_math.js v0.4.5
-// feat: v0.4.5 - Smaller buttons at bottom for thumb reach, time outside bars
+// mental_math.js v0.4.6
+// feat: v0.4.6 - Compact button area, larger button text, fixed colors, centered layout
 
 import React, { useState, useEffect, useRef } from 'react';
 
 const MentalMathGame = () => {
-  const VERSION = 'v0.4.5';
+  const VERSION = 'v0.4.6';
   const TOTAL_PROBLEMS = 10;
 
   // 基本設定
@@ -330,57 +330,56 @@ const MentalMathGame = () => {
       : 0;
 
     return (
-      <div className="fixed inset-0 bg-gradient-to-b from-blue-300 to-purple-400 flex flex-col" 
-           style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-        <div className="flex-1 flex flex-col p-4">
+      <div className="min-h-screen bg-gradient-to-b from-blue-300 to-purple-400 flex items-center justify-center p-4">
+        <div className="max-w-md w-full flex flex-col" style={{ height: '90vh' }}>
           {/* ヘッダー - コンパクト */}
           <div className="flex justify-between items-center mb-2 flex-none">
             <button 
               onClick={backToMenu}
-              className="text-gray-500 text-sm hover:text-gray-700"
+              className="text-white text-sm hover:text-gray-200"
             >
               ← メニュー
             </button>
-            <div className="font-bold text-purple-600 text-sm">{mode}</div>
-            <div className="text-blue-600 font-mono text-sm">
+            <div className="font-bold text-white text-sm">{mode}</div>
+            <div className="text-white font-mono text-sm">
               {problemIndex + 1}/{TOTAL_PROBLEMS}
             </div>
           </div>
 
           {/* 統計 - ヘッダー直下 */}
-          <div className="bg-white bg-opacity-50 rounded-lg px-3 py-1.5 mb-3 flex-none">
+          <div className="bg-white rounded-lg px-3 py-1.5 mb-3 flex-none">
             <div className="flex justify-around text-xs">
               <div className="text-center">
-                <span className="text-gray-700">正解 </span>
+                <span className="text-gray-500">正解 </span>
                 <span className="font-bold text-green-600">{correctCount}</span>
               </div>
               <div className="text-center">
-                <span className="text-gray-700">平均 </span>
+                <span className="text-gray-500">平均 </span>
                 <span className="font-bold text-blue-600">
                   {avgTime > 0 ? `${avgTime.toFixed(1)}秒` : '-'}
                 </span>
               </div>
               <div className="text-center">
-                <span className="text-gray-700">ミス </span>
+                <span className="text-gray-500">ミス </span>
                 <span className="font-bold text-red-600">{mistakeCount}</span>
               </div>
             </div>
           </div>
 
           {/* 問題表示 - 上部に大きく */}
-          <div className="flex-1 flex flex-col items-center justify-center relative">
+          <div className="flex-1 bg-white rounded-2xl shadow-xl flex flex-col items-center justify-center mb-3 relative p-6">
             <div className="text-center w-full">
-              <div className="text-8xl font-bold text-white mb-6" style={{ textShadow: '0 2px 10px rgba(0,0,0,0.2)' }}>
+              <div className="text-7xl font-bold text-gray-800 mb-4">
                 {currentProblem.a} × {currentProblem.b}
               </div>
-              <div className="text-7xl font-mono text-white font-bold" style={{ textShadow: '0 2px 10px rgba(0,0,0,0.2)' }}>
+              <div className="text-6xl font-mono text-blue-600 font-bold">
                 {userAnswer || '_'}
               </div>
             </div>
             
             {/* フィードバック表示 */}
             {feedback && (
-              <div className={`absolute inset-0 flex items-center justify-center rounded-lg ${
+              <div className={`absolute inset-0 flex items-center justify-center rounded-2xl ${
                 feedback.type === 'correct' ? 'bg-green-500' : 'bg-red-500'
               } bg-opacity-90`}>
                 <div className="text-white text-9xl">
@@ -390,7 +389,7 @@ const MentalMathGame = () => {
             )}
           </div>
 
-          {/* 電卓UI - 下部に小さく */}
+          {/* 電卓UI - コンパクト */}
           <div className="flex-none bg-white rounded-2xl p-2 shadow-xl">
             <div className="grid grid-cols-3 gap-1.5">
               {[7, 8, 9, 4, 5, 6, 1, 2, 3].map(num => (
