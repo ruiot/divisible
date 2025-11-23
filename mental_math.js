@@ -1,11 +1,11 @@
-// mental_math.js v0.4.3
-// feat: v0.4.3 - Smaller buttons, stats at top, improved click sound, noise reduction
+// mental_math.js v0.4.4
+// feat: v0.4.4 - Larger buttons, 10 questions, full results chart
 
 import React, { useState, useEffect, useRef } from 'react';
 
 const MentalMathGame = () => {
-  const VERSION = 'v0.4.3';
-  const TOTAL_PROBLEMS = 20;
+  const VERSION = 'v0.4.4';
+  const TOTAL_PROBLEMS = 10;
 
   // 基本設定
   const [gameState, setGameState] = useState('menu'); // 'menu' | 'playing' | 'finished'
@@ -17,7 +17,7 @@ const MentalMathGame = () => {
   // セッション統計
   const [correctCount, setCorrectCount] = useState(0);
   const [problemIndex, setProblemIndex] = useState(0);
-  const [timings, setTimings] = useState([]);
+  const [timings, setTimings] = useState([]); // { problem: '12×16', time: 8500, answer: 192 }
   const [mistakeCount, setMistakeCount] = useState(0);
   
   // 重複防止用: 使用済み問題のセット
@@ -199,7 +199,11 @@ const MentalMathGame = () => {
 
     if (isCorrect) {
       // 正解時: 統計更新
-      const newTimings = [...timings, elapsed];
+      const newTimings = [...timings, {
+        problem: `${currentProblem.a}×${currentProblem.b}`,
+        time: elapsed,
+        answer: currentProblem.answer
+      }];
       setTimings(newTimings);
       setCorrectCount(correctCount + 1);
 
@@ -278,7 +282,7 @@ const MentalMathGame = () => {
             Mental Math
           </h1>
           <p className="text-center mb-8 text-gray-600">
-            暗算練習ツール (20問)
+            暗算練習ツール (10問)
           </p>
           
           <div className="space-y-4">
@@ -322,12 +326,12 @@ const MentalMathGame = () => {
   // プレイ画面
   if (gameState === 'playing') {
     const avgTime = timings.length > 0 
-      ? timings.reduce((a, b) => a + b, 0) / timings.length / 1000 
+      ? timings.reduce((a, b) => a + b.time, 0) / timings.length / 1000 
       : 0;
 
     return (
       <div className="min-h-screen bg-gradient-to-b from-blue-300 to-purple-400 flex items-center justify-center p-4">
-        <div className="bg-white rounded-3xl p-5 max-w-md w-full shadow-2xl flex flex-col" style={{ minHeight: '85vh', maxHeight: '85vh' }}>
+        <div className="bg-white rounded-3xl p-4 max-w-md w-full shadow-2xl flex flex-col" style={{ height: '90vh' }}>
           {/* ヘッダー - コンパクト */}
           <div className="flex justify-between items-center mb-2 flex-none">
             <button 
@@ -343,7 +347,7 @@ const MentalMathGame = () => {
           </div>
 
           {/* 統計 - ヘッダー直下 */}
-          <div className="bg-gray-100 rounded-lg px-3 py-1.5 mb-3 flex-none">
+          <div className="bg-gray-100 rounded-lg px-3 py-1.5 mb-2 flex-none">
             <div className="flex justify-around text-xs">
               <div className="text-center">
                 <span className="text-gray-500">正解 </span>
@@ -363,12 +367,12 @@ const MentalMathGame = () => {
           </div>
 
           {/* 問題表示 */}
-          <div className="flex-1 flex flex-col items-center justify-center mb-3 relative">
+          <div className="flex-1 flex flex-col items-center justify-center mb-2 relative">
             <div className="text-center w-full">
-              <div className="text-7xl font-bold text-gray-800 mb-4">
+              <div className="text-6xl font-bold text-gray-800 mb-3">
                 {currentProblem.a} × {currentProblem.b}
               </div>
-              <div className="text-6xl font-mono text-blue-600 font-bold">
+              <div className="text-5xl font-mono text-blue-600 font-bold">
                 {userAnswer || '_'}
               </div>
             </div>
@@ -385,15 +389,15 @@ const MentalMathGame = () => {
             )}
           </div>
 
-          {/* 電卓UI - 正方形ボタン */}
+          {/* 電卓UI - 大きく */}
           <div className="flex-none">
-            <div className="grid grid-cols-3 gap-1.5">
+            <div className="grid grid-cols-3 gap-2">
               {[7, 8, 9, 4, 5, 6, 1, 2, 3].map(num => (
                 <button
                   key={num}
                   onClick={() => inputNumber(num.toString())}
                   disabled={feedback !== null}
-                  className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 rounded-xl text-2xl font-bold text-gray-700 shadow-md active:scale-95 transition disabled:opacity-50"
+                  className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 rounded-2xl text-4xl font-bold text-gray-700 shadow-md active:scale-95 transition disabled:opacity-50"
                 >
                   {num}
                 </button>
@@ -402,7 +406,7 @@ const MentalMathGame = () => {
               <button
                 onClick={clearInput}
                 disabled={feedback !== null}
-                className="aspect-square bg-gradient-to-br from-red-100 to-red-200 hover:from-red-200 hover:to-red-300 rounded-xl text-xl font-bold text-red-700 shadow-md active:scale-95 transition disabled:opacity-50"
+                className="aspect-square bg-gradient-to-br from-red-100 to-red-200 hover:from-red-200 hover:to-red-300 rounded-2xl text-2xl font-bold text-red-700 shadow-md active:scale-95 transition disabled:opacity-50"
               >
                 C
               </button>
@@ -410,7 +414,7 @@ const MentalMathGame = () => {
               <button
                 onClick={() => inputNumber('0')}
                 disabled={feedback !== null}
-                className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 rounded-xl text-2xl font-bold text-gray-700 shadow-md active:scale-95 transition disabled:opacity-50"
+                className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 rounded-2xl text-4xl font-bold text-gray-700 shadow-md active:scale-95 transition disabled:opacity-50"
               >
                 0
               </button>
@@ -418,7 +422,7 @@ const MentalMathGame = () => {
               <button
                 onClick={submitAnswer}
                 disabled={!userAnswer || feedback !== null}
-                className={`aspect-square rounded-xl text-xl font-bold shadow-md active:scale-95 transition ${
+                className={`aspect-square rounded-2xl text-3xl font-bold shadow-md active:scale-95 transition ${
                   userAnswer && !feedback
                     ? 'bg-gradient-to-br from-green-400 to-green-500 hover:from-green-500 hover:to-green-600 text-white'
                     : 'bg-gray-200 text-gray-400 cursor-not-allowed'
@@ -439,26 +443,23 @@ const MentalMathGame = () => {
 
   // 終了画面
   if (gameState === 'finished') {
-    const totalTime = timings.reduce((a, b) => a + b, 0) / 1000;
+    const totalTime = timings.reduce((a, b) => a + b.time, 0) / 1000;
     const avgTime = totalTime / TOTAL_PROBLEMS;
+    
+    // 時間順にソート
+    const sortedTimings = [...timings].sort((a, b) => b.time - a.time);
+    const maxTime = sortedTimings[0]?.time || 1;
 
     return (
       <div className="min-h-screen bg-gradient-to-b from-blue-300 to-purple-400 flex items-center justify-center p-4">
-        <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl text-center">
-          <div className="text-7xl mb-4">🎉</div>
+        <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl">
+          <div className="text-6xl mb-3 text-center">🎉</div>
           
-          <h2 className="text-4xl font-bold mb-4 text-green-600">
+          <h2 className="text-3xl font-bold mb-3 text-green-600 text-center">
             完了!
           </h2>
           
-          <div className="text-xl mb-6 text-gray-700">
-            <div className="mb-4">
-              <div className="text-3xl font-bold text-blue-600 mb-2">{TOTAL_PROBLEMS}問</div>
-              <div className="text-gray-500">全問正解まで頑張りました!</div>
-            </div>
-          </div>
-
-          <div className="bg-gray-100 rounded-xl p-4 mb-6 space-y-2">
+          <div className="bg-gray-100 rounded-xl p-3 mb-4 space-y-1 text-sm">
             <div className="flex justify-between">
               <span className="text-gray-600">合計時間:</span>
               <span className="font-mono font-bold">{totalTime.toFixed(1)}秒</span>
@@ -473,16 +474,41 @@ const MentalMathGame = () => {
             </div>
           </div>
 
-          <div className="space-y-3">
+          {/* 問題別時間グラフ */}
+          <div className="mb-4">
+            <h3 className="text-sm font-bold text-gray-700 mb-2">問題別タイム</h3>
+            <div className="space-y-1">
+              {sortedTimings.map((item, idx) => {
+                const percentage = (item.time / maxTime) * 100;
+                return (
+                  <div key={idx} className="flex items-center gap-2 text-xs">
+                    <div className="w-20 text-right font-mono text-gray-600">
+                      {item.problem}
+                    </div>
+                    <div className="flex-1 bg-gray-200 rounded-full h-5 overflow-hidden">
+                      <div 
+                        className="bg-gradient-to-r from-blue-400 to-purple-500 h-full flex items-center justify-end pr-2 text-white font-bold text-xs transition-all"
+                        style={{ width: `${percentage}%` }}
+                      >
+                        {(item.time / 1000).toFixed(1)}秒
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="space-y-2">
             <button
               onClick={() => startGame(mode)}
-              className="w-full bg-gradient-to-r from-blue-400 to-purple-500 text-white py-4 rounded-xl font-bold text-lg hover:from-blue-500 hover:to-purple-600 transition transform hover:scale-105"
+              className="w-full bg-gradient-to-r from-blue-400 to-purple-500 text-white py-3 rounded-xl font-bold hover:from-blue-500 hover:to-purple-600 transition transform hover:scale-105"
             >
               もう一度
             </button>
             <button
               onClick={backToMenu}
-              className="w-full bg-gray-300 text-gray-700 py-4 rounded-xl font-bold text-lg hover:bg-gray-400 transition"
+              className="w-full bg-gray-300 text-gray-700 py-3 rounded-xl font-bold hover:bg-gray-400 transition"
             >
               メニューに戻る
             </button>
