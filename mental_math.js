@@ -1,10 +1,10 @@
-// mental_math.js v0.4.0
-// feat: v0.4.0 - Major UI overhaul, remove debug/stats/degradation
+// mental_math.js v0.4.1
+// feat: v0.4.1 - Huge problem display, smaller balanced buttons
 
 import React, { useState, useEffect, useRef } from 'react';
 
 const MentalMathGame = () => {
-  const VERSION = 'v0.4.0';
+  const VERSION = 'v0.4.1';
   const TOTAL_PROBLEMS = 20;
 
   // 基本設定
@@ -294,29 +294,29 @@ const MentalMathGame = () => {
       <div className="fixed inset-0 bg-gradient-to-b from-blue-300 to-purple-400 flex flex-col"
            style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
         <div className="flex-1 flex flex-col p-2">
-          {/* ヘッダー */}
-          <div className="bg-white rounded-lg p-2 mb-2 shadow-lg">
+          {/* ヘッダー - 最小限 */}
+          <div className="bg-white rounded-lg px-3 py-1.5 mb-2 shadow-lg">
             <div className="flex justify-between items-center text-xs">
               <button 
                 onClick={backToMenu}
-                className="text-gray-500 hover:text-gray-700 px-2"
+                className="text-gray-500"
               >
                 ← メニュー
               </button>
               <div className="font-bold text-purple-600">{mode}</div>
-              <div className="text-blue-600 font-mono px-2">
+              <div className="text-blue-600 font-mono">
                 {problemIndex + 1}/{TOTAL_PROBLEMS}
               </div>
             </div>
           </div>
 
-          {/* 問題表示 - 大きく */}
-          <div className="bg-white rounded-lg p-4 mb-2 shadow-lg relative flex-1 flex items-center justify-center">
+          {/* 問題表示 - 超巨大 */}
+          <div className="bg-white rounded-lg p-6 mb-2 shadow-lg relative flex-1 flex items-center justify-center">
             <div className="text-center w-full">
-              <div className="text-5xl font-bold text-gray-800 mb-3">
+              <div className="text-6xl sm:text-7xl font-bold text-gray-800 mb-4">
                 {currentProblem.a} × {currentProblem.b}
               </div>
-              <div className="text-4xl font-mono text-blue-600 font-bold">
+              <div className="text-5xl sm:text-6xl font-mono text-blue-600 font-bold">
                 {userAnswer || '_'}
               </div>
             </div>
@@ -334,26 +334,26 @@ const MentalMathGame = () => {
           </div>
 
           {/* 統計 - コンパクト */}
-          <div className="bg-white rounded-lg p-2 mb-2 shadow-lg">
+          <div className="bg-white rounded-lg px-3 py-1.5 mb-2 shadow-lg">
             <div className="flex justify-around text-xs">
               <div className="text-center">
-                <div className="text-gray-500">正解</div>
-                <div className="font-bold text-green-600">{correctCount}</div>
+                <span className="text-gray-500">正解 </span>
+                <span className="font-bold text-green-600">{correctCount}</span>
               </div>
               <div className="text-center">
-                <div className="text-gray-500">平均</div>
-                <div className="font-bold text-blue-600">
+                <span className="text-gray-500">平均 </span>
+                <span className="font-bold text-blue-600">
                   {avgTime > 0 ? `${avgTime.toFixed(1)}秒` : '-'}
-                </div>
+                </span>
               </div>
               <div className="text-center">
-                <div className="text-gray-500">ミス</div>
-                <div className="font-bold text-red-600">{mistakeCount}</div>
+                <span className="text-gray-500">ミス </span>
+                <span className="font-bold text-red-600">{mistakeCount}</span>
               </div>
             </div>
           </div>
 
-          {/* 電卓UI - 小さく */}
+          {/* 電卓UI - 小さく・バランス良く */}
           <div className="bg-white rounded-lg p-2 shadow-lg">
             <div className="grid grid-cols-3 gap-1">
               {[7, 8, 9, 4, 5, 6, 1, 2, 3].map(num => (
@@ -361,7 +361,7 @@ const MentalMathGame = () => {
                   key={num}
                   onClick={() => inputNumber(num.toString())}
                   disabled={feedback !== null}
-                  className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 rounded-lg text-base sm:text-lg font-bold text-gray-700 shadow-md active:scale-95 transition disabled:opacity-50"
+                  className="h-12 bg-gradient-to-br from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 rounded-md text-xl font-bold text-gray-700 shadow-sm active:scale-95 transition disabled:opacity-50"
                 >
                   {num}
                 </button>
@@ -370,7 +370,7 @@ const MentalMathGame = () => {
               <button
                 onClick={clearInput}
                 disabled={feedback !== null}
-                className="aspect-square bg-gradient-to-br from-red-100 to-red-200 hover:from-red-200 hover:to-red-300 rounded-lg text-sm sm:text-base font-bold text-red-700 shadow-md active:scale-95 transition disabled:opacity-50"
+                className="h-12 bg-gradient-to-br from-red-100 to-red-200 hover:from-red-200 hover:to-red-300 rounded-md text-lg font-bold text-red-700 shadow-sm active:scale-95 transition disabled:opacity-50"
               >
                 C
               </button>
@@ -378,7 +378,7 @@ const MentalMathGame = () => {
               <button
                 onClick={() => inputNumber('0')}
                 disabled={feedback !== null}
-                className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 rounded-lg text-base sm:text-lg font-bold text-gray-700 shadow-md active:scale-95 transition disabled:opacity-50"
+                className="h-12 bg-gradient-to-br from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 rounded-md text-xl font-bold text-gray-700 shadow-sm active:scale-95 transition disabled:opacity-50"
               >
                 0
               </button>
@@ -386,7 +386,7 @@ const MentalMathGame = () => {
               <button
                 onClick={submitAnswer}
                 disabled={!userAnswer || feedback !== null}
-                className={`aspect-square rounded-lg text-sm sm:text-base font-bold shadow-md active:scale-95 transition ${
+                className={`h-12 rounded-md text-lg font-bold shadow-sm active:scale-95 transition ${
                   userAnswer && !feedback
                     ? 'bg-gradient-to-br from-green-400 to-green-500 hover:from-green-500 hover:to-green-600 text-white'
                     : 'bg-gray-200 text-gray-400 cursor-not-allowed'
