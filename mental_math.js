@@ -1,10 +1,10 @@
-// mental_math.js v0.4.2
-// feat: v0.4.2 - Square buttons, centered layout, larger text, button sounds
+// mental_math.js v0.4.3
+// feat: v0.4.3 - Smaller buttons, stats at top, improved click sound, noise reduction
 
 import React, { useState, useEffect, useRef } from 'react';
 
 const MentalMathGame = () => {
-  const VERSION = 'v0.4.2';
+  const VERSION = 'v0.4.3';
   const TOTAL_PROBLEMS = 20;
 
   // 基本設定
@@ -50,50 +50,56 @@ const MentalMathGame = () => {
       // ピンポン♪ (C→E)
       osc.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
       osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1); // E5
-      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.setValueAtTime(0, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.2, ctx.currentTime + 0.01);
       gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
       osc.start(ctx.currentTime);
-      osc.stop(ctx.currentTime + 0.3);
+      osc.stop(ctx.currentTime + 0.32);
     } else if (type === 'incorrect') {
       // ブー (低音)
       osc.type = 'square';
       osc.frequency.setValueAtTime(200, ctx.currentTime);
-      gain.gain.setValueAtTime(0.2, ctx.currentTime);
+      gain.gain.setValueAtTime(0, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.15, ctx.currentTime + 0.01);
       gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
       osc.start(ctx.currentTime);
-      osc.stop(ctx.currentTime + 0.2);
+      osc.stop(ctx.currentTime + 0.22);
     } else if (type === 'finish') {
       // 完了音 (上昇)
       osc.frequency.setValueAtTime(523.25, ctx.currentTime);
       osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1);
       osc.frequency.setValueAtTime(783.99, ctx.currentTime + 0.2);
-      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.setValueAtTime(0, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.2, ctx.currentTime + 0.01);
       gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
       osc.start(ctx.currentTime);
-      osc.stop(ctx.currentTime + 0.4);
+      osc.stop(ctx.currentTime + 0.42);
     } else if (type === 'button') {
-      // 数字入力音 (軽く短い)
+      // クリック音 (短く軽い)
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(800, ctx.currentTime);
-      gain.gain.setValueAtTime(0.08, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.05);
+      osc.frequency.setValueAtTime(1200, ctx.currentTime);
+      gain.gain.setValueAtTime(0, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.04, ctx.currentTime + 0.005);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.03);
       osc.start(ctx.currentTime);
-      osc.stop(ctx.currentTime + 0.05);
+      osc.stop(ctx.currentTime + 0.04);
     } else if (type === 'submit') {
       // 送信音 (確認音)
       osc.type = 'sine';
       osc.frequency.setValueAtTime(600, ctx.currentTime);
       osc.frequency.setValueAtTime(700, ctx.currentTime + 0.05);
-      gain.gain.setValueAtTime(0.12, ctx.currentTime);
+      gain.gain.setValueAtTime(0, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.1, ctx.currentTime + 0.01);
       gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
       osc.start(ctx.currentTime);
-      osc.stop(ctx.currentTime + 0.1);
+      osc.stop(ctx.currentTime + 0.12);
     } else if (type === 'clear') {
       // クリア音 (短いクリック)
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(500, ctx.currentTime);
-      gain.gain.setValueAtTime(0.08, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.04);
+      osc.frequency.setValueAtTime(600, ctx.currentTime);
+      gain.gain.setValueAtTime(0, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.05, ctx.currentTime + 0.005);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.03);
       osc.start(ctx.currentTime);
       osc.stop(ctx.currentTime + 0.04);
     }
@@ -321,9 +327,9 @@ const MentalMathGame = () => {
 
     return (
       <div className="min-h-screen bg-gradient-to-b from-blue-300 to-purple-400 flex items-center justify-center p-4">
-        <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl flex flex-col" style={{ minHeight: '85vh', maxHeight: '85vh' }}>
+        <div className="bg-white rounded-3xl p-5 max-w-md w-full shadow-2xl flex flex-col" style={{ minHeight: '85vh', maxHeight: '85vh' }}>
           {/* ヘッダー - コンパクト */}
-          <div className="flex justify-between items-center mb-3 flex-none">
+          <div className="flex justify-between items-center mb-2 flex-none">
             <button 
               onClick={backToMenu}
               className="text-gray-500 text-sm hover:text-gray-700"
@@ -336,31 +342,8 @@ const MentalMathGame = () => {
             </div>
           </div>
 
-          {/* 問題表示 - 上半分 */}
-          <div className="flex-1 flex flex-col items-center justify-center mb-4 relative">
-            <div className="text-center w-full">
-              <div className="text-8xl font-bold text-gray-800 mb-6">
-                {currentProblem.a} × {currentProblem.b}
-              </div>
-              <div className="text-7xl font-mono text-blue-600 font-bold">
-                {userAnswer || '_'}
-              </div>
-            </div>
-            
-            {/* フィードバック表示 */}
-            {feedback && (
-              <div className={`absolute inset-0 flex items-center justify-center rounded-lg ${
-                feedback.type === 'correct' ? 'bg-green-500' : 'bg-red-500'
-              } bg-opacity-90`}>
-                <div className="text-white text-8xl">
-                  {feedback.type === 'correct' ? '✓' : '✗'}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* 統計 - コンパクト */}
-          <div className="bg-gray-100 rounded-lg px-3 py-2 mb-3 flex-none">
+          {/* 統計 - ヘッダー直下 */}
+          <div className="bg-gray-100 rounded-lg px-3 py-1.5 mb-3 flex-none">
             <div className="flex justify-around text-xs">
               <div className="text-center">
                 <span className="text-gray-500">正解 </span>
@@ -379,15 +362,38 @@ const MentalMathGame = () => {
             </div>
           </div>
 
-          {/* 電卓UI - 下半分、正方形ボタン */}
+          {/* 問題表示 */}
+          <div className="flex-1 flex flex-col items-center justify-center mb-3 relative">
+            <div className="text-center w-full">
+              <div className="text-7xl font-bold text-gray-800 mb-4">
+                {currentProblem.a} × {currentProblem.b}
+              </div>
+              <div className="text-6xl font-mono text-blue-600 font-bold">
+                {userAnswer || '_'}
+              </div>
+            </div>
+            
+            {/* フィードバック表示 */}
+            {feedback && (
+              <div className={`absolute inset-0 flex items-center justify-center rounded-lg ${
+                feedback.type === 'correct' ? 'bg-green-500' : 'bg-red-500'
+              } bg-opacity-90`}>
+                <div className="text-white text-8xl">
+                  {feedback.type === 'correct' ? '✓' : '✗'}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* 電卓UI - 正方形ボタン */}
           <div className="flex-none">
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-1.5">
               {[7, 8, 9, 4, 5, 6, 1, 2, 3].map(num => (
                 <button
                   key={num}
                   onClick={() => inputNumber(num.toString())}
                   disabled={feedback !== null}
-                  className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 rounded-xl text-3xl font-bold text-gray-700 shadow-md active:scale-95 transition disabled:opacity-50"
+                  className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 rounded-xl text-2xl font-bold text-gray-700 shadow-md active:scale-95 transition disabled:opacity-50"
                 >
                   {num}
                 </button>
@@ -396,7 +402,7 @@ const MentalMathGame = () => {
               <button
                 onClick={clearInput}
                 disabled={feedback !== null}
-                className="aspect-square bg-gradient-to-br from-red-100 to-red-200 hover:from-red-200 hover:to-red-300 rounded-xl text-2xl font-bold text-red-700 shadow-md active:scale-95 transition disabled:opacity-50"
+                className="aspect-square bg-gradient-to-br from-red-100 to-red-200 hover:from-red-200 hover:to-red-300 rounded-xl text-xl font-bold text-red-700 shadow-md active:scale-95 transition disabled:opacity-50"
               >
                 C
               </button>
@@ -404,7 +410,7 @@ const MentalMathGame = () => {
               <button
                 onClick={() => inputNumber('0')}
                 disabled={feedback !== null}
-                className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 rounded-xl text-3xl font-bold text-gray-700 shadow-md active:scale-95 transition disabled:opacity-50"
+                className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 rounded-xl text-2xl font-bold text-gray-700 shadow-md active:scale-95 transition disabled:opacity-50"
               >
                 0
               </button>
@@ -412,7 +418,7 @@ const MentalMathGame = () => {
               <button
                 onClick={submitAnswer}
                 disabled={!userAnswer || feedback !== null}
-                className={`aspect-square rounded-xl text-2xl font-bold shadow-md active:scale-95 transition ${
+                className={`aspect-square rounded-xl text-xl font-bold shadow-md active:scale-95 transition ${
                   userAnswer && !feedback
                     ? 'bg-gradient-to-br from-green-400 to-green-500 hover:from-green-500 hover:to-green-600 text-white'
                     : 'bg-gray-200 text-gray-400 cursor-not-allowed'
