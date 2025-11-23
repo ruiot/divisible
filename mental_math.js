@@ -1,10 +1,10 @@
-// mental_math.js v0.4.4
-// feat: v0.4.4 - Larger buttons, 10 questions, full results chart
+// mental_math.js v0.4.5
+// feat: v0.4.5 - Smaller buttons at bottom for thumb reach, time outside bars
 
 import React, { useState, useEffect, useRef } from 'react';
 
 const MentalMathGame = () => {
-  const VERSION = 'v0.4.4';
+  const VERSION = 'v0.4.5';
   const TOTAL_PROBLEMS = 10;
 
   // 基本設定
@@ -330,8 +330,9 @@ const MentalMathGame = () => {
       : 0;
 
     return (
-      <div className="min-h-screen bg-gradient-to-b from-blue-300 to-purple-400 flex items-center justify-center p-4">
-        <div className="bg-white rounded-3xl p-4 max-w-md w-full shadow-2xl flex flex-col" style={{ height: '90vh' }}>
+      <div className="fixed inset-0 bg-gradient-to-b from-blue-300 to-purple-400 flex flex-col" 
+           style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+        <div className="flex-1 flex flex-col p-4">
           {/* ヘッダー - コンパクト */}
           <div className="flex justify-between items-center mb-2 flex-none">
             <button 
@@ -347,32 +348,32 @@ const MentalMathGame = () => {
           </div>
 
           {/* 統計 - ヘッダー直下 */}
-          <div className="bg-gray-100 rounded-lg px-3 py-1.5 mb-2 flex-none">
+          <div className="bg-white bg-opacity-50 rounded-lg px-3 py-1.5 mb-3 flex-none">
             <div className="flex justify-around text-xs">
               <div className="text-center">
-                <span className="text-gray-500">正解 </span>
+                <span className="text-gray-700">正解 </span>
                 <span className="font-bold text-green-600">{correctCount}</span>
               </div>
               <div className="text-center">
-                <span className="text-gray-500">平均 </span>
+                <span className="text-gray-700">平均 </span>
                 <span className="font-bold text-blue-600">
                   {avgTime > 0 ? `${avgTime.toFixed(1)}秒` : '-'}
                 </span>
               </div>
               <div className="text-center">
-                <span className="text-gray-500">ミス </span>
+                <span className="text-gray-700">ミス </span>
                 <span className="font-bold text-red-600">{mistakeCount}</span>
               </div>
             </div>
           </div>
 
-          {/* 問題表示 */}
-          <div className="flex-1 flex flex-col items-center justify-center mb-2 relative">
+          {/* 問題表示 - 上部に大きく */}
+          <div className="flex-1 flex flex-col items-center justify-center relative">
             <div className="text-center w-full">
-              <div className="text-6xl font-bold text-gray-800 mb-3">
+              <div className="text-8xl font-bold text-white mb-6" style={{ textShadow: '0 2px 10px rgba(0,0,0,0.2)' }}>
                 {currentProblem.a} × {currentProblem.b}
               </div>
-              <div className="text-5xl font-mono text-blue-600 font-bold">
+              <div className="text-7xl font-mono text-white font-bold" style={{ textShadow: '0 2px 10px rgba(0,0,0,0.2)' }}>
                 {userAnswer || '_'}
               </div>
             </div>
@@ -382,22 +383,22 @@ const MentalMathGame = () => {
               <div className={`absolute inset-0 flex items-center justify-center rounded-lg ${
                 feedback.type === 'correct' ? 'bg-green-500' : 'bg-red-500'
               } bg-opacity-90`}>
-                <div className="text-white text-8xl">
+                <div className="text-white text-9xl">
                   {feedback.type === 'correct' ? '✓' : '✗'}
                 </div>
               </div>
             )}
           </div>
 
-          {/* 電卓UI - 大きく */}
-          <div className="flex-none">
-            <div className="grid grid-cols-3 gap-2">
+          {/* 電卓UI - 下部に小さく */}
+          <div className="flex-none bg-white rounded-2xl p-2 shadow-xl">
+            <div className="grid grid-cols-3 gap-1.5">
               {[7, 8, 9, 4, 5, 6, 1, 2, 3].map(num => (
                 <button
                   key={num}
                   onClick={() => inputNumber(num.toString())}
                   disabled={feedback !== null}
-                  className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 rounded-2xl text-4xl font-bold text-gray-700 shadow-md active:scale-95 transition disabled:opacity-50"
+                  className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 rounded-xl text-3xl font-bold text-gray-700 shadow-md active:scale-95 transition disabled:opacity-50"
                 >
                   {num}
                 </button>
@@ -406,7 +407,7 @@ const MentalMathGame = () => {
               <button
                 onClick={clearInput}
                 disabled={feedback !== null}
-                className="aspect-square bg-gradient-to-br from-red-100 to-red-200 hover:from-red-200 hover:to-red-300 rounded-2xl text-2xl font-bold text-red-700 shadow-md active:scale-95 transition disabled:opacity-50"
+                className="aspect-square bg-gradient-to-br from-red-100 to-red-200 hover:from-red-200 hover:to-red-300 rounded-xl text-xl font-bold text-red-700 shadow-md active:scale-95 transition disabled:opacity-50"
               >
                 C
               </button>
@@ -414,7 +415,7 @@ const MentalMathGame = () => {
               <button
                 onClick={() => inputNumber('0')}
                 disabled={feedback !== null}
-                className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 rounded-2xl text-4xl font-bold text-gray-700 shadow-md active:scale-95 transition disabled:opacity-50"
+                className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 rounded-xl text-3xl font-bold text-gray-700 shadow-md active:scale-95 transition disabled:opacity-50"
               >
                 0
               </button>
@@ -422,7 +423,7 @@ const MentalMathGame = () => {
               <button
                 onClick={submitAnswer}
                 disabled={!userAnswer || feedback !== null}
-                className={`aspect-square rounded-2xl text-3xl font-bold shadow-md active:scale-95 transition ${
+                className={`aspect-square rounded-xl text-2xl font-bold shadow-md active:scale-95 transition ${
                   userAnswer && !feedback
                     ? 'bg-gradient-to-br from-green-400 to-green-500 hover:from-green-500 hover:to-green-600 text-white'
                     : 'bg-gray-200 text-gray-400 cursor-not-allowed'
@@ -433,7 +434,7 @@ const MentalMathGame = () => {
             </div>
           </div>
 
-          <div className="mt-2 text-center text-xs text-gray-400 flex-none">
+          <div className="mt-2 text-center text-xs text-white opacity-70 flex-none">
             {VERSION}
           </div>
         </div>
@@ -477,20 +478,25 @@ const MentalMathGame = () => {
           {/* 問題別時間グラフ */}
           <div className="mb-4">
             <h3 className="text-sm font-bold text-gray-700 mb-2">問題別タイム</h3>
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               {sortedTimings.map((item, idx) => {
                 const percentage = (item.time / maxTime) * 100;
+                const timeText = (item.time / 1000).toFixed(1) + '秒';
                 return (
-                  <div key={idx} className="flex items-center gap-2 text-xs">
-                    <div className="w-20 text-right font-mono text-gray-600">
+                  <div key={idx} className="flex items-center gap-2">
+                    <div className="w-16 text-right font-mono text-gray-600 text-xs">
                       {item.problem}
                     </div>
-                    <div className="flex-1 bg-gray-200 rounded-full h-5 overflow-hidden">
-                      <div 
-                        className="bg-gradient-to-r from-blue-400 to-purple-500 h-full flex items-center justify-end pr-2 text-white font-bold text-xs transition-all"
-                        style={{ width: `${percentage}%` }}
-                      >
-                        {(item.time / 1000).toFixed(1)}秒
+                    <div className="flex-1 flex items-center gap-1">
+                      <div className="flex-1 bg-gray-200 rounded-full h-6 overflow-hidden">
+                        <div 
+                          className="bg-gradient-to-r from-blue-400 to-purple-500 h-full transition-all"
+                          style={{ width: `${percentage}%` }}
+                        >
+                        </div>
+                      </div>
+                      <div className="w-14 text-xs font-bold text-gray-700 font-mono">
+                        {timeText}
                       </div>
                     </div>
                   </div>
