@@ -1,10 +1,10 @@
-// mental_math.js v0.4.10
-// feat: v0.4.10 - 72px centered buttons, larger text, max-height for iPad tabs
+// mental_math.js v0.4.11
+// fix: v0.4.11 - Use w-20 h-20 (80px) instead of invalid w-18 for buttons
 
 import React, { useState, useEffect, useRef } from 'react';
 
 const MentalMathGame = () => {
-  const VERSION = 'v0.4.10';
+  const VERSION = 'v0.4.11';
   const TOTAL_PROBLEMS = 10;
 
   // 基本設定
@@ -389,7 +389,7 @@ const MentalMathGame = () => {
             )}
           </div>
 
-          {/* 電卓UI - 72px正方形ボタン・中央揃え */}
+          {/* 電卓UI - 80px正方形ボタン・中央揃え */}
           <div className="flex-none bg-white rounded-xl p-2 shadow-xl mb-4 sm:mb-6">
             <div className="flex flex-col items-center gap-2">
               {/* 数字ボタン - 3x3グリッド */}
@@ -399,7 +399,7 @@ const MentalMathGame = () => {
                     key={num}
                     onClick={() => inputNumber(num.toString())}
                     disabled={feedback !== null}
-                    className="w-18 h-18 bg-gradient-to-br from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 rounded-xl text-4xl font-bold text-gray-700 shadow-md active:scale-95 transition disabled:opacity-50"
+                    className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 rounded-xl text-4xl font-bold text-gray-700 shadow-md active:scale-95 transition disabled:opacity-50"
                   >
                     {num}
                   </button>
@@ -411,7 +411,7 @@ const MentalMathGame = () => {
                 <button
                   onClick={clearInput}
                   disabled={feedback !== null}
-                  className="w-18 h-18 bg-gradient-to-br from-red-100 to-red-200 hover:from-red-200 hover:to-red-300 rounded-xl text-2xl font-bold text-red-700 shadow-md active:scale-95 transition disabled:opacity-50"
+                  className="w-20 h-20 bg-gradient-to-br from-red-100 to-red-200 hover:from-red-200 hover:to-red-300 rounded-xl text-2xl font-bold text-red-700 shadow-md active:scale-95 transition disabled:opacity-50"
                 >
                   C
                 </button>
@@ -419,7 +419,7 @@ const MentalMathGame = () => {
                 <button
                   onClick={() => inputNumber('0')}
                   disabled={feedback !== null}
-                  className="w-18 h-18 bg-gradient-to-br from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 rounded-xl text-4xl font-bold text-gray-700 shadow-md active:scale-95 transition disabled:opacity-50"
+                  className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 rounded-xl text-4xl font-bold text-gray-700 shadow-md active:scale-95 transition disabled:opacity-50"
                 >
                   0
                 </button>
@@ -427,7 +427,7 @@ const MentalMathGame = () => {
                 <button
                   onClick={submitAnswer}
                   disabled={!userAnswer || feedback !== null}
-                  className={`w-18 h-18 rounded-xl text-3xl font-bold shadow-md active:scale-95 transition ${
+                  className={`w-20 h-20 rounded-xl text-3xl font-bold shadow-md active:scale-95 transition ${
                     userAnswer && !feedback
                       ? 'bg-gradient-to-br from-green-400 to-green-500 hover:from-green-500 hover:to-green-600 text-white'
                       : 'bg-gray-200 text-gray-400 cursor-not-allowed'
