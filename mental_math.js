@@ -1,10 +1,10 @@
-// mental_math.js v0.4.7
-// feat: v0.4.7 - Responsive design, tap-to-start for first problem
+// mental_math.js v0.4.8
+// feat: v0.4.8 - Compact buttons at bottom, stats at top, flex layout for iPad landscape
 
 import React, { useState, useEffect, useRef } from 'react';
 
 const MentalMathGame = () => {
-  const VERSION = 'v0.4.7';
+  const VERSION = 'v0.4.8';
   const TOTAL_PROBLEMS = 10;
 
   // 基本設定
@@ -170,21 +170,12 @@ const MentalMathGame = () => {
     setUsedProblems(new Set(newUsedProblems));
     
     setCurrentProblem(problem);
-    // startTimeはタップ後に設定
-  };
-
-  // 第一問スタート
-  const handleReadyStart = () => {
-    if (!isReady) {
-      playSound('start');
-      setIsReady(true);
-      setStartTime(Date.now()); // ここから計測開始
-    }
+    // startTimeは✓ボタン押下後に設定
   };
 
   // 数字入力
   const inputNumber = (num) => {
-    if (feedback || !isReady) return; // フィードバック表示中または未スタート時は入力不可
+    if (feedback) return; // フィードバック表示中は入力不可
     playSound('button');
     if (userAnswer.length < 5) {
       setUserAnswer(userAnswer + num);
@@ -193,20 +184,31 @@ const MentalMathGame = () => {
 
   // クリア
   const clearInput = () => {
-    if (feedback || !isReady) return;
+    if (feedback) return;
     playSound('clear');
     setUserAnswer('');
   };
 
   // Backspace
   const backspace = () => {
-    if (feedback || !isReady) return;
+    if (feedback) return;
     setUserAnswer(userAnswer.slice(0, -1));
   };
 
-  // 回答送信
+  // 回答送信（✓ボタン）
   const submitAnswer = () => {
-    if (!userAnswer || !currentProblem || feedback || !isReady) return;
+    if (feedback) return;
+
+    // 第一問目でまだスタートしていない場合
+    if (!isReady) {
+      playSound('start');
+      setIsReady(true);
+      setStartTime(Date.now()); // ここから計測開始
+      return;
+    }
+
+    // 入力がない場合は何もしない
+    if (!userAnswer || !currentProblem) return;
 
     playSound('submit');
 
@@ -278,13 +280,6 @@ const MentalMathGame = () => {
   useEffect(() => {
     const handleKeyPress = (e) => {
       if (gameState !== 'playing' || feedback) return;
-      
-      if (!isReady && e.key === 'Enter') {
-        handleReadyStart();
-        return;
-      }
-      
-      if (!isReady) return;
       
       if (e.key >= '0' && e.key <= '9') {
         inputNumber(e.key);
@@ -359,9 +354,9 @@ const MentalMathGame = () => {
 
     return (
       <div className="min-h-screen bg-gradient-to-b from-blue-300 to-purple-400 flex items-center justify-center p-2 sm:p-4">
-        <div className="max-w-md w-full flex flex-col" style={{ height: '95vh', maxHeight: '800px' }}>
+        <div className="max-w-md w-full h-full flex flex-col" style={{ minHeight: '100vh' }}>
           {/* ヘッダー - コンパクト */}
-          <div className="flex justify-between items-center mb-2 flex-none">
+          <div className="flex justify-between items-center mb-1 flex-none">
             <button 
               onClick={backToMenu}
               className="text-white text-xs sm:text-sm hover:text-gray-200"
@@ -375,7 +370,7 @@ const MentalMathGame = () => {
           </div>
 
           {/* 統計 - ヘッダー直下 */}
-          <div className="bg-white rounded-lg px-2 sm:px-3 py-1 sm:py-1.5 mb-2 sm:mb-3 flex-none">
+          <div className="bg-white rounded-lg px-2 sm:px-3 py-1 mb-1 flex-none">
             <div className="flex justify-around text-xs sm:text-sm">
               <div className="text-center">
                 <span className="text-gray-500">正解 </span>
@@ -394,10 +389,10 @@ const MentalMathGame = () => {
             </div>
           </div>
 
-          {/* 問題表示 - 上部に大きく */}
-          <div className="flex-1 bg-white rounded-2xl shadow-xl flex flex-col items-center justify-center mb-2 sm:mb-3 relative p-4 sm:p-6">
+          {/* 問題表示 - 残り全部を使う */}
+          <div className="flex-1 bg-white rounded-2xl shadow-xl flex flex-col items-center justify-center mb-1 relative p-4">
             <div className="text-center w-full">
-              <div className="text-5xl sm:text-6xl md:text-7xl font-bold text-gray-800 mb-3 sm:mb-4">
+              <div className="text-5xl sm:text-6xl md:text-7xl font-bold text-gray-800 mb-2 sm:mb-3">
                 {currentProblem.a} × {currentProblem.b}
               </div>
               <div className="text-4xl sm:text-5xl md:text-6xl font-mono text-blue-600 font-bold">
@@ -416,33 +411,25 @@ const MentalMathGame = () => {
               </div>
             )}
 
-            {/* 第一問スタート待機オーバーレイ */}
+            {/* 第一問スタート待機表示 */}
             {!isReady && (
-              <div 
-                className="absolute inset-0 flex items-center justify-center rounded-2xl bg-blue-500 bg-opacity-95 cursor-pointer"
-                onClick={handleReadyStart}
-              >
-                <div className="text-center">
-                  <div className="text-white text-3xl sm:text-4xl md:text-5xl font-bold mb-3 sm:mb-4">
-                    タップしてスタート
-                  </div>
-                  <div className="text-white text-5xl sm:text-6xl md:text-7xl animate-pulse">
-                    👆
-                  </div>
+              <div className="absolute bottom-4 left-0 right-0 text-center">
+                <div className="text-gray-400 text-sm sm:text-base animate-pulse">
+                  ✓ を押してスタート
                 </div>
               </div>
             )}
           </div>
 
-          {/* 電卓UI - コンパクト */}
-          <div className="flex-none bg-white rounded-2xl p-1.5 sm:p-2 shadow-xl">
-            <div className="grid grid-cols-3 gap-1 sm:gap-1.5">
+          {/* 電卓UI - コンパクトに下部 */}
+          <div className="flex-none bg-white rounded-xl p-1 shadow-xl">
+            <div className="grid grid-cols-3 gap-1">
               {[7, 8, 9, 4, 5, 6, 1, 2, 3].map(num => (
                 <button
                   key={num}
                   onClick={() => inputNumber(num.toString())}
-                  disabled={feedback !== null || !isReady}
-                  className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 rounded-xl text-2xl sm:text-3xl font-bold text-gray-700 shadow-md active:scale-95 transition disabled:opacity-50"
+                  disabled={feedback !== null}
+                  className="h-11 sm:h-12 bg-gradient-to-br from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 rounded-lg text-xl sm:text-2xl font-bold text-gray-700 shadow-md active:scale-95 transition disabled:opacity-50"
                 >
                   {num}
                 </button>
@@ -450,25 +437,25 @@ const MentalMathGame = () => {
               
               <button
                 onClick={clearInput}
-                disabled={feedback !== null || !isReady}
-                className="aspect-square bg-gradient-to-br from-red-100 to-red-200 hover:from-red-200 hover:to-red-300 rounded-xl text-lg sm:text-xl font-bold text-red-700 shadow-md active:scale-95 transition disabled:opacity-50"
+                disabled={feedback !== null}
+                className="h-11 sm:h-12 bg-gradient-to-br from-red-100 to-red-200 hover:from-red-200 hover:to-red-300 rounded-lg text-base sm:text-lg font-bold text-red-700 shadow-md active:scale-95 transition disabled:opacity-50"
               >
                 C
               </button>
               
               <button
                 onClick={() => inputNumber('0')}
-                disabled={feedback !== null || !isReady}
-                className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 rounded-xl text-2xl sm:text-3xl font-bold text-gray-700 shadow-md active:scale-95 transition disabled:opacity-50"
+                disabled={feedback !== null}
+                className="h-11 sm:h-12 bg-gradient-to-br from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 rounded-lg text-xl sm:text-2xl font-bold text-gray-700 shadow-md active:scale-95 transition disabled:opacity-50"
               >
                 0
               </button>
               
               <button
                 onClick={submitAnswer}
-                disabled={!userAnswer || feedback !== null || !isReady}
-                className={`aspect-square rounded-xl text-xl sm:text-2xl font-bold shadow-md active:scale-95 transition ${
-                  userAnswer && !feedback && isReady
+                disabled={feedback !== null}
+                className={`h-11 sm:h-12 rounded-lg text-xl sm:text-2xl font-bold shadow-md active:scale-95 transition ${
+                  feedback === null
                     ? 'bg-gradient-to-br from-green-400 to-green-500 hover:from-green-500 hover:to-green-600 text-white'
                     : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                 }`}
@@ -478,7 +465,7 @@ const MentalMathGame = () => {
             </div>
           </div>
 
-          <div className="mt-1 sm:mt-2 text-center text-xs text-white opacity-70 flex-none">
+          <div className="mt-1 text-center text-xs text-white opacity-70 flex-none">
             {VERSION}
           </div>
         </div>
