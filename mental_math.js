@@ -1,15 +1,15 @@
-// mental_math.js v0.4.11
-// fix: v0.4.11 - Use w-20 h-20 (80px) instead of invalid w-18 for buttons
+// mental_math.js v0.5.0
+// feat: v0.5.0 - Add 99² mode (11-99 square calculation practice)
 
 import React, { useState, useEffect, useRef } from 'react';
 
 const MentalMathGame = () => {
-  const VERSION = 'v0.4.11';
+  const VERSION = 'v0.5.0';
   const TOTAL_PROBLEMS = 10;
 
   // 基本設定
   const [gameState, setGameState] = useState('menu'); // 'menu' | 'playing' | 'finished'
-  const [mode, setMode] = useState(null); // '9x9' | '19x19' | '99x9' | '99x99'
+  const [mode, setMode] = useState(null); // '9x9' | '19x19' | '99x9' | '99^2' | '99x99'
   const [currentProblem, setCurrentProblem] = useState(null);
   const [userAnswer, setUserAnswer] = useState('');
   const [startTime, setStartTime] = useState(null);
@@ -117,6 +117,9 @@ const MentalMathGame = () => {
     } else if (selectedMode === '99x9') {
       a = Math.floor(Math.random() * 90) + 10; // 10-99
       b = Math.floor(Math.random() * 8) + 2;   // 2-9
+    } else if (selectedMode === '99^2') {
+      a = Math.floor(Math.random() * 89) + 11; // 11-99
+      b = a; // 2乗なので同じ数
     } else if (selectedMode === '99x99') {
       a = Math.floor(Math.random() * 90) + 10; // 10-99
       b = Math.floor(Math.random() * 90) + 10; // 10-99
@@ -199,8 +202,12 @@ const MentalMathGame = () => {
 
     if (isCorrect) {
       // 正解時: 統計更新
+      const problemStr = mode === '99^2' 
+        ? `${currentProblem.a}²`
+        : `${currentProblem.a}×${currentProblem.b}`;
+      
       const newTimings = [...timings, {
-        problem: `${currentProblem.a}×${currentProblem.b}`,
+        problem: problemStr,
         time: elapsed,
         answer: currentProblem.answer
       }];
@@ -308,6 +315,13 @@ const MentalMathGame = () => {
             </button>
 
             <button
+              onClick={() => startGame('99^2')}
+              className="w-full bg-gradient-to-r from-orange-500 to-red-500 text-white py-5 sm:py-6 rounded-xl font-bold text-xl sm:text-2xl hover:from-orange-600 hover:to-red-600 transition transform hover:scale-105 shadow-lg"
+            >
+              99² モード
+            </button>
+
+            <button
               onClick={() => startGame('99x99')}
               className="w-full bg-gradient-to-r from-red-400 to-rose-500 text-white py-5 sm:py-6 rounded-xl font-bold text-xl sm:text-2xl hover:from-red-500 hover:to-rose-600 transition transform hover:scale-105 shadow-lg"
             >
@@ -369,9 +383,15 @@ const MentalMathGame = () => {
           {/* 問題表示 - 最大高さ制限付き */}
           <div className="flex-1 max-h-[40vh] bg-white rounded-2xl shadow-xl flex flex-col items-center justify-center mb-2 relative p-4 overflow-hidden">
             <div className="text-center w-full">
-              <div className="text-6xl sm:text-7xl md:text-8xl font-bold text-gray-800 mb-2 sm:mb-3">
-                {currentProblem.a} × {currentProblem.b}
-              </div>
+              {mode === '99^2' ? (
+                <div className="text-6xl sm:text-7xl md:text-8xl font-bold text-gray-800 mb-2 sm:mb-3">
+                  {currentProblem.a}²
+                </div>
+              ) : (
+                <div className="text-6xl sm:text-7xl md:text-8xl font-bold text-gray-800 mb-2 sm:mb-3">
+                  {currentProblem.a} × {currentProblem.b}
+                </div>
+              )}
               <div className="text-5xl sm:text-6xl md:text-7xl font-mono text-blue-600 font-bold">
                 {userAnswer || '_'}
               </div>
