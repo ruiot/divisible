@@ -1,15 +1,15 @@
-// mental_math.js v0.5.0
-// feat: v0.5.0 - Add 99² mode (11-99 square calculation practice)
+// mental_math.js v0.6.0
+// feat: v0.6.0 - Add addition modes (9+9, 99+9, 99+99, 999+999)
 
 import React, { useState, useEffect, useRef } from 'react';
 
 const MentalMathGame = () => {
-  const VERSION = 'v0.5.0';
+  const VERSION = 'v0.6.0';
   const TOTAL_PROBLEMS = 10;
 
   // 基本設定
   const [gameState, setGameState] = useState('menu'); // 'menu' | 'playing' | 'finished'
-  const [mode, setMode] = useState(null); // '9x9' | '19x19' | '99x9' | '99^2' | '99x99'
+  const [mode, setMode] = useState(null);
   const [currentProblem, setCurrentProblem] = useState(null);
   const [userAnswer, setUserAnswer] = useState('');
   const [startTime, setStartTime] = useState(null);
@@ -108,6 +108,27 @@ const MentalMathGame = () => {
   // 問題生成
   const generateProblem = (selectedMode) => {
     let a, b;
+    
+    // 足し算モード
+    if (selectedMode === '9+9') {
+      a = Math.floor(Math.random() * 9) + 1;  // 1-9
+      b = Math.floor(Math.random() * 9) + 1;  // 1-9
+      return { a, b, answer: a + b, operator: '+' };
+    } else if (selectedMode === '99+9') {
+      a = Math.floor(Math.random() * 89) + 11; // 11-99
+      b = Math.floor(Math.random() * 9) + 1;   // 1-9
+      return { a, b, answer: a + b, operator: '+' };
+    } else if (selectedMode === '99+99') {
+      a = Math.floor(Math.random() * 89) + 11; // 11-99
+      b = Math.floor(Math.random() * 89) + 11; // 11-99
+      return { a, b, answer: a + b, operator: '+' };
+    } else if (selectedMode === '999+999') {
+      a = Math.floor(Math.random() * 900) + 100; // 100-999
+      b = Math.floor(Math.random() * 900) + 100; // 100-999
+      return { a, b, answer: a + b, operator: '+' };
+    }
+    
+    // 掛け算モード
     if (selectedMode === '9x9') {
       a = Math.floor(Math.random() * 8) + 2;  // 2-9
       b = Math.floor(Math.random() * 8) + 2;  // 2-9
@@ -120,11 +141,13 @@ const MentalMathGame = () => {
     } else if (selectedMode === '99^2') {
       a = Math.floor(Math.random() * 89) + 11; // 11-99
       b = a; // 2乗なので同じ数
+      return { a, b, answer: a * b, operator: '²' };
     } else if (selectedMode === '99x99') {
       a = Math.floor(Math.random() * 90) + 10; // 10-99
       b = Math.floor(Math.random() * 90) + 10; // 10-99
     }
-    return { a, b, answer: a * b };
+    
+    return { a, b, answer: a * b, operator: '×' };
   };
 
   // 重複のない問題生成
@@ -137,7 +160,7 @@ const MentalMathGame = () => {
       attempts++;
       // 100回試行しても見つからない場合は重複を許可
       if (attempts > 100) break;
-    } while (usedSet.has(`${problem.a}×${problem.b}`));
+    } while (usedSet.has(`${problem.a}${problem.operator}${problem.b}`));
     
     return problem;
   };
@@ -158,7 +181,7 @@ const MentalMathGame = () => {
     setUsedProblems(newUsedProblems);
     
     const problem = generateUniqueProblem(selectedMode, newUsedProblems);
-    newUsedProblems.add(`${problem.a}×${problem.b}`);
+    newUsedProblems.add(`${problem.a}${problem.operator}${problem.b}`);
     setUsedProblems(new Set(newUsedProblems));
     
     setCurrentProblem(problem);
@@ -204,7 +227,7 @@ const MentalMathGame = () => {
       // 正解時: 統計更新
       const problemStr = mode === '99^2' 
         ? `${currentProblem.a}²`
-        : `${currentProblem.a}×${currentProblem.b}`;
+        : `${currentProblem.a}${currentProblem.operator}${currentProblem.b}`;
       
       const newTimings = [...timings, {
         problem: problemStr,
@@ -230,7 +253,7 @@ const MentalMathGame = () => {
           setUsedProblems(currentUsed => {
             const newUsed = new Set(currentUsed);
             const problem = generateUniqueProblem(mode, newUsed);
-            newUsed.add(`${problem.a}×${problem.b}`);
+            newUsed.add(`${problem.a}${problem.operator}${problem.b}`);
             
             setCurrentProblem(problem);
             setStartTime(Date.now());
@@ -292,41 +315,80 @@ const MentalMathGame = () => {
             暗算練習ツール (10問)
           </p>
           
-          <div className="space-y-3 sm:space-y-4">
-            <button
-              onClick={() => startGame('9x9')}
-              className="w-full bg-gradient-to-r from-green-400 to-emerald-500 text-white py-5 sm:py-6 rounded-xl font-bold text-xl sm:text-2xl hover:from-green-500 hover:to-emerald-600 transition transform hover:scale-105 shadow-lg"
-            >
-              9×9 モード
-            </button>
-            
-            <button
-              onClick={() => startGame('19x19')}
-              className="w-full bg-gradient-to-r from-blue-400 to-indigo-500 text-white py-5 sm:py-6 rounded-xl font-bold text-xl sm:text-2xl hover:from-blue-500 hover:to-indigo-600 transition transform hover:scale-105 shadow-lg"
-            >
-              19×19 モード
-            </button>
+          {/* 足し算カテゴリー */}
+          <div className="mb-6">
+            <h2 className="text-lg font-bold text-gray-700 mb-2 flex items-center gap-2">
+              ➕ 足し算
+            </h2>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => startGame('9+9')}
+                className="bg-gradient-to-r from-green-400 to-emerald-500 text-white py-4 rounded-xl font-bold text-lg sm:text-xl hover:from-green-500 hover:to-emerald-600 transition transform hover:scale-105 shadow-lg"
+              >
+                9+9
+              </button>
+              <button
+                onClick={() => startGame('99+9')}
+                className="bg-gradient-to-r from-green-400 to-emerald-500 text-white py-4 rounded-xl font-bold text-lg sm:text-xl hover:from-green-500 hover:to-emerald-600 transition transform hover:scale-105 shadow-lg"
+              >
+                99+9
+              </button>
+              <button
+                onClick={() => startGame('99+99')}
+                className="bg-gradient-to-r from-green-400 to-emerald-500 text-white py-4 rounded-xl font-bold text-lg sm:text-xl hover:from-green-500 hover:to-emerald-600 transition transform hover:scale-105 shadow-lg"
+              >
+                99+99
+              </button>
+              <button
+                onClick={() => startGame('999+999')}
+                className="bg-gradient-to-r from-green-400 to-emerald-500 text-white py-4 rounded-xl font-bold text-lg sm:text-xl hover:from-green-500 hover:to-emerald-600 transition transform hover:scale-105 shadow-lg"
+              >
+                999+999
+              </button>
+            </div>
+          </div>
 
-            <button
-              onClick={() => startGame('99x9')}
-              className="w-full bg-gradient-to-r from-orange-400 to-amber-500 text-white py-5 sm:py-6 rounded-xl font-bold text-xl sm:text-2xl hover:from-orange-500 hover:to-amber-600 transition transform hover:scale-105 shadow-lg"
-            >
-              99×9 モード
-            </button>
+          {/* 掛け算カテゴリー */}
+          <div>
+            <h2 className="text-lg font-bold text-gray-700 mb-2 flex items-center gap-2">
+              ✕ 掛け算
+            </h2>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => startGame('9x9')}
+                className="bg-gradient-to-r from-blue-400 to-indigo-500 text-white py-4 rounded-xl font-bold text-lg sm:text-xl hover:from-blue-500 hover:to-indigo-600 transition transform hover:scale-105 shadow-lg"
+              >
+                9×9
+              </button>
+              
+              <button
+                onClick={() => startGame('19x19')}
+                className="bg-gradient-to-r from-blue-400 to-indigo-500 text-white py-4 rounded-xl font-bold text-lg sm:text-xl hover:from-blue-500 hover:to-indigo-600 transition transform hover:scale-105 shadow-lg"
+              >
+                19×19
+              </button>
 
-            <button
-              onClick={() => startGame('99^2')}
-              className="w-full bg-gradient-to-r from-orange-500 to-red-500 text-white py-5 sm:py-6 rounded-xl font-bold text-xl sm:text-2xl hover:from-orange-600 hover:to-red-600 transition transform hover:scale-105 shadow-lg"
-            >
-              99² モード
-            </button>
+              <button
+                onClick={() => startGame('99x9')}
+                className="bg-gradient-to-r from-orange-400 to-amber-500 text-white py-4 rounded-xl font-bold text-lg sm:text-xl hover:from-orange-500 hover:to-amber-600 transition transform hover:scale-105 shadow-lg"
+              >
+                99×9
+              </button>
 
-            <button
-              onClick={() => startGame('99x99')}
-              className="w-full bg-gradient-to-r from-red-400 to-rose-500 text-white py-5 sm:py-6 rounded-xl font-bold text-xl sm:text-2xl hover:from-red-500 hover:to-rose-600 transition transform hover:scale-105 shadow-lg"
-            >
-              99×99 モード
-            </button>
+              <button
+                onClick={() => startGame('99^2')}
+                className="bg-gradient-to-r from-orange-500 to-red-500 text-white py-4 rounded-xl font-bold text-lg sm:text-xl hover:from-orange-600 hover:to-red-600 transition transform hover:scale-105 shadow-lg"
+              >
+                99²
+              </button>
+
+              <button
+                onClick={() => startGame('99x99')}
+                className="bg-gradient-to-r from-red-400 to-rose-500 text-white py-4 rounded-xl font-bold text-lg sm:text-xl hover:from-red-500 hover:to-rose-600 transition transform hover:scale-105 shadow-lg"
+              >
+                99×99
+              </button>
+            </div>
           </div>
 
           <div className="mt-4 text-center text-xs text-gray-400">
@@ -389,7 +451,7 @@ const MentalMathGame = () => {
                 </div>
               ) : (
                 <div className="text-6xl sm:text-7xl md:text-8xl font-bold text-gray-800 mb-2 sm:mb-3">
-                  {currentProblem.a} × {currentProblem.b}
+                  {currentProblem.a} {currentProblem.operator} {currentProblem.b}
                 </div>
               )}
               <div className="text-5xl sm:text-6xl md:text-7xl font-mono text-blue-600 font-bold">
