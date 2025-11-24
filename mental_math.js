@@ -1,10 +1,10 @@
-// mental_math.js v0.4.8
-// feat: v0.4.8 - Compact buttons at bottom, stats at top, flex layout for iPad landscape
+// mental_math.js v0.4.9
+// feat: v0.4.9 - 64px square buttons, text-4xl, optimized layout for thumb reach
 
 import React, { useState, useEffect, useRef } from 'react';
 
 const MentalMathGame = () => {
-  const VERSION = 'v0.4.8';
+  const VERSION = 'v0.4.9';
   const TOTAL_PROBLEMS = 10;
 
   // 基本設定
@@ -13,7 +13,6 @@ const MentalMathGame = () => {
   const [currentProblem, setCurrentProblem] = useState(null);
   const [userAnswer, setUserAnswer] = useState('');
   const [startTime, setStartTime] = useState(null);
-  const [isReady, setIsReady] = useState(false); // 第一問スタート待機
   
   // セッション統計
   const [correctCount, setCorrectCount] = useState(0);
@@ -103,15 +102,6 @@ const MentalMathGame = () => {
       gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.03);
       osc.start(ctx.currentTime);
       osc.stop(ctx.currentTime + 0.04);
-    } else if (type === 'start') {
-      // スタート音 (ポジティブ)
-      osc.frequency.setValueAtTime(440, ctx.currentTime);
-      osc.frequency.setValueAtTime(554.37, ctx.currentTime + 0.1);
-      gain.gain.setValueAtTime(0, ctx.currentTime);
-      gain.gain.linearRampToValueAtTime(0.15, ctx.currentTime + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
-      osc.start(ctx.currentTime);
-      osc.stop(ctx.currentTime + 0.22);
     }
   };
 
@@ -160,7 +150,6 @@ const MentalMathGame = () => {
     setMistakeCount(0);
     setUserAnswer('');
     setFeedback(null);
-    setIsReady(false); // 第一問はスタート待機
     
     const newUsedProblems = new Set();
     setUsedProblems(newUsedProblems);
@@ -170,7 +159,7 @@ const MentalMathGame = () => {
     setUsedProblems(new Set(newUsedProblems));
     
     setCurrentProblem(problem);
-    // startTimeは✓ボタン押下後に設定
+    setStartTime(Date.now()); // 画面表示と同時に計測開始
   };
 
   // 数字入力
@@ -195,20 +184,9 @@ const MentalMathGame = () => {
     setUserAnswer(userAnswer.slice(0, -1));
   };
 
-  // 回答送信（✓ボタン）
+  // 回答送信
   const submitAnswer = () => {
-    if (feedback) return;
-
-    // 第一問目でまだスタートしていない場合
-    if (!isReady) {
-      playSound('start');
-      setIsReady(true);
-      setStartTime(Date.now()); // ここから計測開始
-      return;
-    }
-
-    // 入力がない場合は何もしない
-    if (!userAnswer || !currentProblem) return;
+    if (!userAnswer || !currentProblem || feedback) return;
 
     playSound('submit');
 
@@ -273,7 +251,6 @@ const MentalMathGame = () => {
     setCurrentProblem(null);
     setUserAnswer('');
     setFeedback(null);
-    setIsReady(false);
   };
 
   // キーボード入力対応
@@ -294,7 +271,7 @@ const MentalMathGame = () => {
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [gameState, userAnswer, feedback, isReady]);
+  }, [gameState, userAnswer, feedback]);
 
   // メニュー画面
   if (gameState === 'menu') {
@@ -354,7 +331,7 @@ const MentalMathGame = () => {
 
     return (
       <div className="min-h-screen bg-gradient-to-b from-blue-300 to-purple-400 flex items-center justify-center p-2 sm:p-4">
-        <div className="max-w-md w-full h-full flex flex-col" style={{ minHeight: '100vh' }}>
+        <div className="max-w-md w-full flex flex-col" style={{ minHeight: '100vh' }}>
           {/* ヘッダー - コンパクト */}
           <div className="flex justify-between items-center mb-1 flex-none">
             <button 
@@ -370,7 +347,7 @@ const MentalMathGame = () => {
           </div>
 
           {/* 統計 - ヘッダー直下 */}
-          <div className="bg-white rounded-lg px-2 sm:px-3 py-1 mb-1 flex-none">
+          <div className="bg-white rounded-lg px-2 sm:px-3 py-1 mb-2 flex-none">
             <div className="flex justify-around text-xs sm:text-sm">
               <div className="text-center">
                 <span className="text-gray-500">正解 </span>
@@ -390,7 +367,7 @@ const MentalMathGame = () => {
           </div>
 
           {/* 問題表示 - 残り全部を使う */}
-          <div className="flex-1 bg-white rounded-2xl shadow-xl flex flex-col items-center justify-center mb-1 relative p-4">
+          <div className="flex-1 bg-white rounded-2xl shadow-xl flex flex-col items-center justify-center mb-2 relative p-4">
             <div className="text-center w-full">
               <div className="text-5xl sm:text-6xl md:text-7xl font-bold text-gray-800 mb-2 sm:mb-3">
                 {currentProblem.a} × {currentProblem.b}
@@ -410,26 +387,17 @@ const MentalMathGame = () => {
                 </div>
               </div>
             )}
-
-            {/* 第一問スタート待機表示 */}
-            {!isReady && (
-              <div className="absolute bottom-4 left-0 right-0 text-center">
-                <div className="text-gray-400 text-sm sm:text-base animate-pulse">
-                  ✓ を押してスタート
-                </div>
-              </div>
-            )}
           </div>
 
-          {/* 電卓UI - コンパクトに下部 */}
-          <div className="flex-none bg-white rounded-xl p-1 shadow-xl">
-            <div className="grid grid-cols-3 gap-1">
+          {/* 電卓UI - 64px正方形ボタン */}
+          <div className="flex-none bg-white rounded-xl p-2 shadow-xl mb-4 sm:mb-6">
+            <div className="grid grid-cols-3 gap-2 max-w-sm mx-auto">
               {[7, 8, 9, 4, 5, 6, 1, 2, 3].map(num => (
                 <button
                   key={num}
                   onClick={() => inputNumber(num.toString())}
                   disabled={feedback !== null}
-                  className="h-11 sm:h-12 bg-gradient-to-br from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 rounded-lg text-xl sm:text-2xl font-bold text-gray-700 shadow-md active:scale-95 transition disabled:opacity-50"
+                  className="w-16 h-16 bg-gradient-to-br from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 rounded-xl text-4xl font-bold text-gray-700 shadow-md active:scale-95 transition disabled:opacity-50"
                 >
                   {num}
                 </button>
@@ -438,7 +406,7 @@ const MentalMathGame = () => {
               <button
                 onClick={clearInput}
                 disabled={feedback !== null}
-                className="h-11 sm:h-12 bg-gradient-to-br from-red-100 to-red-200 hover:from-red-200 hover:to-red-300 rounded-lg text-base sm:text-lg font-bold text-red-700 shadow-md active:scale-95 transition disabled:opacity-50"
+                className="w-16 h-16 bg-gradient-to-br from-red-100 to-red-200 hover:from-red-200 hover:to-red-300 rounded-xl text-2xl font-bold text-red-700 shadow-md active:scale-95 transition disabled:opacity-50"
               >
                 C
               </button>
@@ -446,16 +414,16 @@ const MentalMathGame = () => {
               <button
                 onClick={() => inputNumber('0')}
                 disabled={feedback !== null}
-                className="h-11 sm:h-12 bg-gradient-to-br from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 rounded-lg text-xl sm:text-2xl font-bold text-gray-700 shadow-md active:scale-95 transition disabled:opacity-50"
+                className="w-16 h-16 bg-gradient-to-br from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 rounded-xl text-4xl font-bold text-gray-700 shadow-md active:scale-95 transition disabled:opacity-50"
               >
                 0
               </button>
               
               <button
                 onClick={submitAnswer}
-                disabled={feedback !== null}
-                className={`h-11 sm:h-12 rounded-lg text-xl sm:text-2xl font-bold shadow-md active:scale-95 transition ${
-                  feedback === null
+                disabled={!userAnswer || feedback !== null}
+                className={`w-16 h-16 rounded-xl text-3xl font-bold shadow-md active:scale-95 transition ${
+                  userAnswer && !feedback
                     ? 'bg-gradient-to-br from-green-400 to-green-500 hover:from-green-500 hover:to-green-600 text-white'
                     : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                 }`}
@@ -465,7 +433,7 @@ const MentalMathGame = () => {
             </div>
           </div>
 
-          <div className="mt-1 text-center text-xs text-white opacity-70 flex-none">
+          <div className="text-center text-xs text-white opacity-70 flex-none mb-2">
             {VERSION}
           </div>
         </div>
