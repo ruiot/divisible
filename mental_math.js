@@ -1,10 +1,10 @@
-// mental_math.js v0.6.0
-// feat: v0.6.0 - Add addition modes (9+9, 99+9, 99+99, 999+999)
+// mental_math.js v0.7.0
+// feat: v0.7.0 - Add Doomsday modes with Date API and cumulative timing
 
 import React, { useState, useEffect, useRef } from 'react';
 
 const MentalMathGame = () => {
-  const VERSION = 'v0.6.0';
+  const VERSION = 'v0.7.0';
   const TOTAL_PROBLEMS = 10;
 
   // 基本設定
@@ -12,7 +12,7 @@ const MentalMathGame = () => {
   const [mode, setMode] = useState(null);
   const [currentProblem, setCurrentProblem] = useState(null);
   const [userAnswer, setUserAnswer] = useState('');
-  const [startTime, setStartTime] = useState(null);
+  const [problemStartTime, setProblemStartTime] = useState(null);
   
   // セッション統計
   const [correctCount, setCorrectCount] = useState(0);
@@ -106,51 +106,100 @@ const MentalMathGame = () => {
   };
 
   // 問題生成
+  const getRandomYearNormal = (centerYear, minYear, maxYear, stdDev) => {
+    const u1 = Math.random();
+    const u2 = Math.random();
+    const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+    
+    const year = Math.round(centerYear + z * stdDev);
+    return Math.max(minYear, Math.min(maxYear, year));
+  };
+
   const generateProblem = (selectedMode) => {
+    const currentMode = selectedMode || mode;
     let a, b;
     
-    // 足し算モード
-    if (selectedMode === '9+9') {
-      a = Math.floor(Math.random() * 9) + 1;  // 1-9
-      b = Math.floor(Math.random() * 9) + 1;  // 1-9
+    if (currentMode === 'doomsday-easy') {
+      const currentYear = new Date().getFullYear();
+      const years = [currentYear, currentYear + 1];
+      const year = years[Math.floor(Math.random() * 2)];
+      
+      const month = Math.floor(Math.random() * 12) + 1;
+      const daysInMonth = new Date(year, month, 0).getDate();
+      const day = Math.floor(Math.random() * daysInMonth) + 1;
+      
+      const date = new Date(year, month - 1, day);
+      const correctDay = date.getDay();
+      
+      return { 
+        year, 
+        month, 
+        day, 
+        answer: correctDay, 
+        operator: 'doomsday',
+        displayText: `${year}/${month}/${day}`
+      };
+    }
+    
+    if (currentMode === 'doomsday-hard') {
+      const year = getRandomYearNormal(2000, 1900, 2099, 33);
+      
+      const month = Math.floor(Math.random() * 12) + 1;
+      const daysInMonth = new Date(year, month, 0).getDate();
+      const day = Math.floor(Math.random() * daysInMonth) + 1;
+      
+      const date = new Date(year, month - 1, day);
+      const correctDay = date.getDay();
+      
+      return { 
+        year, 
+        month, 
+        day, 
+        answer: correctDay, 
+        operator: 'doomsday',
+        displayText: `${year}/${month}/${day}`
+      };
+    }
+    
+    if (currentMode === '9+9') {
+      a = Math.floor(Math.random() * 9) + 1;
+      b = Math.floor(Math.random() * 9) + 1;
       return { a, b, answer: a + b, operator: '+' };
-    } else if (selectedMode === '99+9') {
-      a = Math.floor(Math.random() * 89) + 11; // 11-99
-      b = Math.floor(Math.random() * 9) + 1;   // 1-9
+    } else if (currentMode === '99+9') {
+      a = Math.floor(Math.random() * 89) + 11;
+      b = Math.floor(Math.random() * 9) + 1;
       return { a, b, answer: a + b, operator: '+' };
-    } else if (selectedMode === '99+99') {
-      a = Math.floor(Math.random() * 89) + 11; // 11-99
-      b = Math.floor(Math.random() * 89) + 11; // 11-99
+    } else if (currentMode === '99+99') {
+      a = Math.floor(Math.random() * 89) + 11;
+      b = Math.floor(Math.random() * 89) + 11;
       return { a, b, answer: a + b, operator: '+' };
-    } else if (selectedMode === '999+999') {
-      a = Math.floor(Math.random() * 900) + 100; // 100-999
-      b = Math.floor(Math.random() * 900) + 100; // 100-999
+    } else if (currentMode === '999+999') {
+      a = Math.floor(Math.random() * 900) + 100;
+      b = Math.floor(Math.random() * 900) + 100;
       return { a, b, answer: a + b, operator: '+' };
     }
     
-    // 掛け算モード
-    if (selectedMode === '9x9') {
-      a = Math.floor(Math.random() * 8) + 2;  // 2-9
-      b = Math.floor(Math.random() * 8) + 2;  // 2-9
-    } else if (selectedMode === '19x19') {
-      a = Math.floor(Math.random() * 9) + 11; // 11-19
-      b = Math.floor(Math.random() * 9) + 11; // 11-19
-    } else if (selectedMode === '99x9') {
-      a = Math.floor(Math.random() * 90) + 10; // 10-99
-      b = Math.floor(Math.random() * 8) + 2;   // 2-9
-    } else if (selectedMode === '99^2') {
-      a = Math.floor(Math.random() * 89) + 11; // 11-99
-      b = a; // 2乗なので同じ数
+    if (currentMode === '9x9') {
+      a = Math.floor(Math.random() * 8) + 2;
+      b = Math.floor(Math.random() * 8) + 2;
+    } else if (currentMode === '19x19') {
+      a = Math.floor(Math.random() * 9) + 11;
+      b = Math.floor(Math.random() * 9) + 11;
+    } else if (currentMode === '99x9') {
+      a = Math.floor(Math.random() * 90) + 10;
+      b = Math.floor(Math.random() * 8) + 2;
+    } else if (currentMode === '99^2') {
+      a = Math.floor(Math.random() * 89) + 11;
+      b = a;
       return { a, b, answer: a * b, operator: '²' };
-    } else if (selectedMode === '99x99') {
-      a = Math.floor(Math.random() * 90) + 10; // 10-99
-      b = Math.floor(Math.random() * 90) + 10; // 10-99
+    } else if (currentMode === '99x99') {
+      a = Math.floor(Math.random() * 90) + 10;
+      b = Math.floor(Math.random() * 90) + 10;
     }
     
     return { a, b, answer: a * b, operator: '×' };
   };
 
-  // 重複のない問題生成
   const generateUniqueProblem = (selectedMode, usedSet) => {
     let problem;
     let attempts = 0;
@@ -158,14 +207,18 @@ const MentalMathGame = () => {
     do {
       problem = generateProblem(selectedMode);
       attempts++;
-      // 100回試行しても見つからない場合は重複を許可
       if (attempts > 100) break;
-    } while (usedSet.has(`${problem.a}${problem.operator}${problem.b}`));
+      
+      const key = problem.operator === 'doomsday' 
+        ? `${problem.year}-${problem.month}-${problem.day}`
+        : `${problem.a}${problem.operator}${problem.b}`;
+      
+      if (!usedSet.has(key)) break;
+    } while (true);
     
     return problem;
   };
 
-  // ゲーム開始
   const startGame = (selectedMode) => {
     initAudio();
     setMode(selectedMode);
@@ -181,53 +234,63 @@ const MentalMathGame = () => {
     setUsedProblems(newUsedProblems);
     
     const problem = generateUniqueProblem(selectedMode, newUsedProblems);
-    newUsedProblems.add(`${problem.a}${problem.operator}${problem.b}`);
+    
+    const key = problem.operator === 'doomsday' 
+      ? `${problem.year}-${problem.month}-${problem.day}`
+      : `${problem.a}${problem.operator}${problem.b}`;
+    
+    newUsedProblems.add(key);
     setUsedProblems(new Set(newUsedProblems));
     
     setCurrentProblem(problem);
-    setStartTime(Date.now()); // 画面表示と同時に計測開始
+    setProblemStartTime(Date.now());
   };
 
-  // 数字入力
   const inputNumber = (num) => {
-    if (feedback) return; // フィードバック表示中は入力不可
+    if (feedback) return;
     playSound('button');
     if (userAnswer.length < 5) {
       setUserAnswer(userAnswer + num);
     }
   };
 
-  // クリア
   const clearInput = () => {
     if (feedback) return;
     playSound('clear');
     setUserAnswer('');
   };
 
-  // Backspace
   const backspace = () => {
     if (feedback) return;
     setUserAnswer(userAnswer.slice(0, -1));
   };
 
-  // 回答送信
   const submitAnswer = () => {
     if (!userAnswer || !currentProblem || feedback) return;
 
     playSound('submit');
 
-    const elapsed = Date.now() - startTime;
+    const elapsed = Date.now() - problemStartTime;
     const isCorrect = parseInt(userAnswer) === currentProblem.answer;
     
-    // フィードバック表示
-    setFeedback({ type: isCorrect ? 'correct' : 'incorrect' });
+    if (isCorrect) {
+      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      setFeedback({ 
+        type: 'correct', 
+        dayName: currentProblem.operator === 'doomsday' ? dayNames[currentProblem.answer] : null 
+      });
+    } else {
+      setFeedback({ type: 'incorrect' });
+    }
+    
     playSound(isCorrect ? 'correct' : 'incorrect');
 
     if (isCorrect) {
-      // 正解時: 統計更新
-      const problemStr = mode === '99^2' 
-        ? `${currentProblem.a}²`
-        : `${currentProblem.a}${currentProblem.operator}${currentProblem.b}`;
+      const problemStr = currentProblem.operator === 'doomsday'
+        ? currentProblem.displayText
+        : currentProblem.operator === '²' 
+          ? `${currentProblem.a}²`
+          : `${currentProblem.a}${currentProblem.operator}${currentProblem.b}`;
       
       const newTimings = [...timings, {
         problem: problemStr,
@@ -237,44 +300,43 @@ const MentalMathGame = () => {
       setTimings(newTimings);
       setCorrectCount(correctCount + 1);
 
-      // 0.3秒後に次の問題へ
       setTimeout(() => {
         setFeedback(null);
         setUserAnswer('');
         
         if (problemIndex + 1 >= TOTAL_PROBLEMS) {
-          // 全問終了
           playSound('finish');
           setGameState('finished');
         } else {
-          // 次の問題
           setProblemIndex(problemIndex + 1);
           
           setUsedProblems(currentUsed => {
             const newUsed = new Set(currentUsed);
             const problem = generateUniqueProblem(mode, newUsed);
-            newUsed.add(`${problem.a}${problem.operator}${problem.b}`);
+            
+            const key = problem.operator === 'doomsday' 
+              ? `${problem.year}-${problem.month}-${problem.day}`
+              : `${problem.a}${problem.operator}${problem.b}`;
+            
+            newUsed.add(key);
             
             setCurrentProblem(problem);
-            setStartTime(Date.now());
+            setProblemStartTime(Date.now());
             
             return newUsed;
           });
         }
       }, 300);
     } else {
-      // 不正解時: ミス回数増加、同じ問題を再出題
       setMistakeCount(mistakeCount + 1);
       
       setTimeout(() => {
         setFeedback(null);
         setUserAnswer('');
-        setStartTime(Date.now()); // タイマーリセット
-      }, 300);
+      }, 800);
     }
   };
 
-  // メニューに戻る
   const backToMenu = () => {
     setGameState('menu');
     setMode(null);
@@ -283,7 +345,6 @@ const MentalMathGame = () => {
     setFeedback(null);
   };
 
-  // キーボード入力対応
   useEffect(() => {
     const handleKeyPress = (e) => {
       if (gameState !== 'playing' || feedback) return;
@@ -303,8 +364,9 @@ const MentalMathGame = () => {
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [gameState, userAnswer, feedback]);
 
-  // メニュー画面
   if (gameState === 'menu') {
+    const currentYear = new Date().getFullYear();
+    
     return (
       <div className="min-h-screen bg-gradient-to-b from-green-400 to-blue-500 flex items-center justify-center p-4">
         <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl">
@@ -315,7 +377,30 @@ const MentalMathGame = () => {
             暗算練習ツール (10問)
           </p>
           
-          {/* 足し算カテゴリー */}
+          <div className="mb-6">
+            <h2 className="text-lg font-bold text-gray-700 mb-2 flex items-center gap-2">
+              📅 曜日計算 (Doomsday)
+            </h2>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => startGame('doomsday-easy')}
+                className="bg-gradient-to-r from-cyan-400 to-blue-500 text-white py-4 rounded-xl font-bold text-lg sm:text-xl hover:from-cyan-500 hover:to-blue-600 transition transform hover:scale-105 shadow-lg"
+              >
+                Easy
+                <br/>
+                <span className="text-sm opacity-90">({currentYear}-{currentYear + 1})</span>
+              </button>
+              <button
+                onClick={() => startGame('doomsday-hard')}
+                className="bg-gradient-to-r from-purple-400 to-pink-500 text-white py-4 rounded-xl font-bold text-lg sm:text-xl hover:from-purple-500 hover:to-pink-600 transition transform hover:scale-105 shadow-lg"
+              >
+                Hard
+                <br/>
+                <span className="text-sm opacity-90">(1900-2099)</span>
+              </button>
+            </div>
+          </div>
+
           <div className="mb-6">
             <h2 className="text-lg font-bold text-gray-700 mb-2 flex items-center gap-2">
               ➕ 足し算
@@ -348,7 +433,6 @@ const MentalMathGame = () => {
             </div>
           </div>
 
-          {/* 掛け算カテゴリー */}
           <div>
             <h2 className="text-lg font-bold text-gray-700 mb-2 flex items-center gap-2">
               ✕ 掛け算
@@ -399,7 +483,6 @@ const MentalMathGame = () => {
     );
   }
 
-  // プレイ画面
   if (gameState === 'playing') {
     const avgTime = timings.length > 0 
       ? timings.reduce((a, b) => a + b.time, 0) / timings.length / 1000 
@@ -408,7 +491,6 @@ const MentalMathGame = () => {
     return (
       <div className="min-h-screen bg-gradient-to-b from-blue-300 to-purple-400 flex items-center justify-center p-2 sm:p-4">
         <div className="max-w-md w-full flex flex-col" style={{ minHeight: '100vh' }}>
-          {/* ヘッダー - コンパクト */}
           <div className="flex justify-between items-center mb-1 flex-none">
             <button 
               onClick={backToMenu}
@@ -422,7 +504,6 @@ const MentalMathGame = () => {
             </div>
           </div>
 
-          {/* 統計 - ヘッダー直下 */}
           <div className="bg-white rounded-lg px-2 sm:px-3 py-1 mb-2 flex-none">
             <div className="flex justify-around text-xs sm:text-sm">
               <div className="text-center">
@@ -442,10 +523,13 @@ const MentalMathGame = () => {
             </div>
           </div>
 
-          {/* 問題表示 - 最大高さ制限付き */}
           <div className="flex-1 max-h-[40vh] bg-white rounded-2xl shadow-xl flex flex-col items-center justify-center mb-2 relative p-4 overflow-hidden">
             <div className="text-center w-full">
-              {mode === '99^2' ? (
+              {currentProblem.operator === 'doomsday' ? (
+                <div className="text-4xl sm:text-5xl md:text-6xl font-bold text-gray-800 mb-2 sm:mb-3">
+                  {currentProblem.displayText}
+                </div>
+              ) : mode === '99^2' ? (
                 <div className="text-6xl sm:text-7xl md:text-8xl font-bold text-gray-800 mb-2 sm:mb-3">
                   {currentProblem.a}²
                 </div>
@@ -459,22 +543,24 @@ const MentalMathGame = () => {
               </div>
             </div>
             
-            {/* フィードバック表示 */}
             {feedback && (
-              <div className={`absolute inset-0 flex items-center justify-center rounded-2xl ${
+              <div className={`absolute inset-0 flex flex-col items-center justify-center rounded-2xl ${
                 feedback.type === 'correct' ? 'bg-green-500' : 'bg-red-500'
               } bg-opacity-90`}>
-                <div className="text-white text-7xl sm:text-8xl md:text-9xl">
+                <div className="text-white text-7xl sm:text-8xl md:text-9xl mb-2">
                   {feedback.type === 'correct' ? '✓' : '✗'}
                 </div>
+                {feedback.type === 'correct' && feedback.dayName && (
+                  <div className="text-white text-2xl sm:text-3xl font-bold">
+                    {feedback.dayName} ({currentProblem.answer})
+                  </div>
+                )}
               </div>
             )}
           </div>
 
-          {/* 電卓UI - 80px正方形ボタン・中央揃え */}
           <div className="flex-none bg-white rounded-xl p-2 shadow-xl mb-4 sm:mb-6">
             <div className="flex flex-col items-center gap-2">
-              {/* 数字ボタン - 3x3グリッド */}
               <div className="grid grid-cols-3 gap-2">
                 {[7, 8, 9, 4, 5, 6, 1, 2, 3].map(num => (
                   <button
@@ -488,7 +574,6 @@ const MentalMathGame = () => {
                 ))}
               </div>
               
-              {/* 下段ボタン - C, 0, ✓ */}
               <div className="flex gap-2">
                 <button
                   onClick={clearInput}
@@ -562,7 +647,6 @@ const MentalMathGame = () => {
             </div>
           </div>
 
-          {/* 問題別時間グラフ */}
           <div className="mb-3 sm:mb-4">
             <h3 className="text-xs sm:text-sm font-bold text-gray-700 mb-2">問題別タイム</h3>
             <div className="space-y-1 sm:space-y-1.5">
@@ -571,7 +655,7 @@ const MentalMathGame = () => {
                 const timeText = (item.time / 1000).toFixed(1) + '秒';
                 return (
                   <div key={idx} className="flex items-center gap-1 sm:gap-2">
-                    <div className="w-12 sm:w-16 text-right font-mono text-gray-600 text-xs">
+                    <div className="w-16 sm:w-20 text-right font-mono text-gray-600 text-xs">
                       {item.problem}
                     </div>
                     <div className="flex-1 flex items-center gap-1">
