@@ -1,10 +1,10 @@
-// mental_math.js v0.7.0
-// feat: v0.7.0 - Add Doomsday modes with Date API and cumulative timing
+// mental_math.js v0.7.1
+// feat: v0.7.1 - Reorganize menu (3-col grid, move Doomsday down), show weekday name during input
 
 import React, { useState, useEffect, useRef } from 'react';
 
 const MentalMathGame = () => {
-  const VERSION = 'v0.7.0';
+  const VERSION = 'v0.7.1';
   const TOTAL_PROBLEMS = 10;
 
   // 基本設定
@@ -364,113 +364,117 @@ const MentalMathGame = () => {
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [gameState, userAnswer, feedback]);
 
+  // 曜日名を取得（0-6の入力に対応）
+  const getWeekdayName = () => {
+    if (!currentProblem || currentProblem.operator !== 'doomsday') return null;
+    
+    const num = parseInt(userAnswer);
+    if (isNaN(num) || num < 0 || num > 6) return null;
+    
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    return dayNames[num];
+  };
+
   if (gameState === 'menu') {
     const currentYear = new Date().getFullYear();
     
     return (
       <div className="min-h-screen bg-gradient-to-b from-green-400 to-blue-500 flex items-center justify-center p-4">
-        <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl">
-          <h1 className="text-4xl sm:text-5xl font-bold text-center mb-3 sm:mb-4 text-blue-600">
+        <div className="bg-white rounded-3xl p-4 sm:p-6 max-w-md w-full shadow-2xl">
+          <h1 className="text-4xl sm:text-5xl font-bold text-center mb-4 text-blue-600">
             Mental Math
           </h1>
-          <p className="text-center mb-6 sm:mb-8 text-sm sm:text-base text-gray-600">
-            暗算練習ツール (10問)
-          </p>
-          
-          <div className="mb-6">
-            <h2 className="text-lg font-bold text-gray-700 mb-2 flex items-center gap-2">
-              📅 曜日計算 (Doomsday)
-            </h2>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={() => startGame('doomsday-easy')}
-                className="bg-gradient-to-r from-cyan-400 to-blue-500 text-white py-4 rounded-xl font-bold text-lg sm:text-xl hover:from-cyan-500 hover:to-blue-600 transition transform hover:scale-105 shadow-lg"
-              >
-                Easy
-                <br/>
-                <span className="text-sm opacity-90">({currentYear}-{currentYear + 1})</span>
-              </button>
-              <button
-                onClick={() => startGame('doomsday-hard')}
-                className="bg-gradient-to-r from-purple-400 to-pink-500 text-white py-4 rounded-xl font-bold text-lg sm:text-xl hover:from-purple-500 hover:to-pink-600 transition transform hover:scale-105 shadow-lg"
-              >
-                Hard
-                <br/>
-                <span className="text-sm opacity-90">(1900-2099)</span>
-              </button>
-            </div>
-          </div>
 
-          <div className="mb-6">
-            <h2 className="text-lg font-bold text-gray-700 mb-2 flex items-center gap-2">
+          <div className="mb-4">
+            <h2 className="text-base sm:text-lg font-bold text-gray-700 mb-2 flex items-center gap-2">
               ➕ 足し算
             </h2>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <button
                 onClick={() => startGame('9+9')}
-                className="bg-gradient-to-r from-green-400 to-emerald-500 text-white py-4 rounded-xl font-bold text-lg sm:text-xl hover:from-green-500 hover:to-emerald-600 transition transform hover:scale-105 shadow-lg"
+                className="bg-gradient-to-r from-green-400 to-emerald-500 text-white py-3 rounded-xl font-bold text-base sm:text-lg hover:from-green-500 hover:to-emerald-600 transition transform hover:scale-105 shadow-lg"
               >
                 9+9
               </button>
               <button
                 onClick={() => startGame('99+9')}
-                className="bg-gradient-to-r from-green-400 to-emerald-500 text-white py-4 rounded-xl font-bold text-lg sm:text-xl hover:from-green-500 hover:to-emerald-600 transition transform hover:scale-105 shadow-lg"
+                className="bg-gradient-to-r from-green-400 to-emerald-500 text-white py-3 rounded-xl font-bold text-base sm:text-lg hover:from-green-500 hover:to-emerald-600 transition transform hover:scale-105 shadow-lg"
               >
                 99+9
               </button>
               <button
                 onClick={() => startGame('99+99')}
-                className="bg-gradient-to-r from-green-400 to-emerald-500 text-white py-4 rounded-xl font-bold text-lg sm:text-xl hover:from-green-500 hover:to-emerald-600 transition transform hover:scale-105 shadow-lg"
+                className="bg-gradient-to-r from-green-400 to-emerald-500 text-white py-3 rounded-xl font-bold text-base sm:text-lg hover:from-green-500 hover:to-emerald-600 transition transform hover:scale-105 shadow-lg"
               >
                 99+99
               </button>
+            </div>
+            <div className="grid grid-cols-3 gap-2 mt-2">
               <button
                 onClick={() => startGame('999+999')}
-                className="bg-gradient-to-r from-green-400 to-emerald-500 text-white py-4 rounded-xl font-bold text-lg sm:text-xl hover:from-green-500 hover:to-emerald-600 transition transform hover:scale-105 shadow-lg"
+                className="bg-gradient-to-r from-green-400 to-emerald-500 text-white py-3 rounded-xl font-bold text-base sm:text-lg hover:from-green-500 hover:to-emerald-600 transition transform hover:scale-105 shadow-lg"
               >
                 999+999
               </button>
             </div>
           </div>
 
-          <div>
-            <h2 className="text-lg font-bold text-gray-700 mb-2 flex items-center gap-2">
+          <div className="mb-4">
+            <h2 className="text-base sm:text-lg font-bold text-gray-700 mb-2 flex items-center gap-2">
               ✕ 掛け算
             </h2>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <button
                 onClick={() => startGame('9x9')}
-                className="bg-gradient-to-r from-blue-400 to-indigo-500 text-white py-4 rounded-xl font-bold text-lg sm:text-xl hover:from-blue-500 hover:to-indigo-600 transition transform hover:scale-105 shadow-lg"
+                className="bg-gradient-to-r from-blue-400 to-indigo-500 text-white py-3 rounded-xl font-bold text-base sm:text-lg hover:from-blue-500 hover:to-indigo-600 transition transform hover:scale-105 shadow-lg"
               >
                 9×9
               </button>
-              
               <button
                 onClick={() => startGame('19x19')}
-                className="bg-gradient-to-r from-blue-400 to-indigo-500 text-white py-4 rounded-xl font-bold text-lg sm:text-xl hover:from-blue-500 hover:to-indigo-600 transition transform hover:scale-105 shadow-lg"
+                className="bg-gradient-to-r from-blue-400 to-indigo-500 text-white py-3 rounded-xl font-bold text-base sm:text-lg hover:from-blue-500 hover:to-indigo-600 transition transform hover:scale-105 shadow-lg"
               >
                 19×19
               </button>
-
               <button
                 onClick={() => startGame('99x9')}
-                className="bg-gradient-to-r from-orange-400 to-amber-500 text-white py-4 rounded-xl font-bold text-lg sm:text-xl hover:from-orange-500 hover:to-amber-600 transition transform hover:scale-105 shadow-lg"
+                className="bg-gradient-to-r from-orange-400 to-amber-500 text-white py-3 rounded-xl font-bold text-base sm:text-lg hover:from-orange-500 hover:to-amber-600 transition transform hover:scale-105 shadow-lg"
               >
                 99×9
               </button>
-
+            </div>
+            <div className="grid grid-cols-3 gap-2 mt-2">
               <button
                 onClick={() => startGame('99^2')}
-                className="bg-gradient-to-r from-orange-500 to-red-500 text-white py-4 rounded-xl font-bold text-lg sm:text-xl hover:from-orange-600 hover:to-red-600 transition transform hover:scale-105 shadow-lg"
+                className="bg-gradient-to-r from-orange-500 to-red-500 text-white py-3 rounded-xl font-bold text-base sm:text-lg hover:from-orange-600 hover:to-red-600 transition transform hover:scale-105 shadow-lg"
               >
                 99²
               </button>
-
               <button
                 onClick={() => startGame('99x99')}
-                className="bg-gradient-to-r from-red-400 to-rose-500 text-white py-4 rounded-xl font-bold text-lg sm:text-xl hover:from-red-500 hover:to-rose-600 transition transform hover:scale-105 shadow-lg"
+                className="bg-gradient-to-r from-red-400 to-rose-500 text-white py-3 rounded-xl font-bold text-base sm:text-lg hover:from-red-500 hover:to-rose-600 transition transform hover:scale-105 shadow-lg"
               >
                 99×99
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <h2 className="text-base sm:text-lg font-bold text-gray-700 mb-2 flex items-center gap-2">
+              📅 曜日計算
+            </h2>
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                onClick={() => startGame('doomsday-easy')}
+                className="bg-gradient-to-r from-cyan-400 to-blue-500 text-white py-3 rounded-xl font-bold text-sm hover:from-cyan-500 hover:to-blue-600 transition transform hover:scale-105 shadow-lg"
+              >
+                {currentYear}-<br/>{currentYear + 1}
+              </button>
+              <button
+                onClick={() => startGame('doomsday-hard')}
+                className="bg-gradient-to-r from-purple-400 to-pink-500 text-white py-3 rounded-xl font-bold text-sm hover:from-purple-500 hover:to-pink-600 transition transform hover:scale-105 shadow-lg"
+              >
+                1900-<br/>2099
               </button>
             </div>
           </div>
@@ -487,6 +491,8 @@ const MentalMathGame = () => {
     const avgTime = timings.length > 0 
       ? timings.reduce((a, b) => a + b.time, 0) / timings.length / 1000 
       : 0;
+
+    const weekdayName = getWeekdayName();
 
     return (
       <div className="min-h-screen bg-gradient-to-b from-blue-300 to-purple-400 flex items-center justify-center p-2 sm:p-4">
@@ -541,6 +547,11 @@ const MentalMathGame = () => {
               <div className="text-5xl sm:text-6xl md:text-7xl font-mono text-blue-600 font-bold">
                 {userAnswer || '_'}
               </div>
+              {weekdayName && (
+                <div className="text-2xl sm:text-3xl text-gray-600 mt-2">
+                  {weekdayName}
+                </div>
+              )}
             </div>
             
             {feedback && (
@@ -578,7 +589,7 @@ const MentalMathGame = () => {
                 <button
                   onClick={clearInput}
                   disabled={feedback !== null}
-                  className="w-20 h-20 bg-gradient-to-br from-red-100 to-red-200 hover:from-red-200 hover:to-red-300 rounded-xl text-2xl font-bold text-red-700 shadow-md active:scale-95 transition disabled:opacity-50"
+                  className="w-20 h-20 bg-gradient-to-br from-red-100 to-red-200 hover:from-red-200 hover:to-red-300 rounded-xl text-4xl font-bold text-red-700 shadow-md active:scale-95 transition disabled:opacity-50"
                 >
                   C
                 </button>
