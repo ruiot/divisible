@@ -1,10 +1,10 @@
-// mental_math.js v0.7.1
-// feat: v0.7.1 - Reorganize menu (3-col grid, move Doomsday down), show weekday name during input
+// mental_math.js v0.8.0
+// feat: v0.8.0 - Add subtraction and division modes with remainder support
 
 import React, { useState, useEffect, useRef } from 'react';
 
 const MentalMathGame = () => {
-  const VERSION = 'v0.7.1';
+  const VERSION = 'v0.8.0';
   const TOTAL_PROBLEMS = 10;
 
   // 基本設定
@@ -179,6 +179,36 @@ const MentalMathGame = () => {
       return { a, b, answer: a + b, operator: '+' };
     }
     
+    if (currentMode === '99-99') {
+      a = Math.floor(Math.random() * 90) + 10;
+      b = Math.floor(Math.random() * a);
+      return { a, b, answer: a - b, operator: '-' };
+    } else if (currentMode === '999-999') {
+      a = Math.floor(Math.random() * 900) + 100;
+      b = Math.floor(Math.random() * a);
+      return { a, b, answer: a - b, operator: '-' };
+    }
+    
+    if (currentMode === '81÷9') {
+      const divisor = Math.floor(Math.random() * 8) + 2;
+      const quotient = Math.floor(Math.random() * 8) + 2;
+      const dividend = divisor * quotient;
+      return { a: dividend, b: divisor, answer: quotient, operator: '÷' };
+    } else if (currentMode === '99÷9') {
+      const divisor = Math.floor(Math.random() * 8) + 2;
+      const dividend = Math.floor(Math.random() * 90) + 10;
+      const quotient = Math.floor(dividend / divisor);
+      const remainder = dividend % divisor;
+      
+      return { 
+        a: dividend, 
+        b: divisor, 
+        answer: { quotient, remainder },
+        operator: '÷',
+        displayFormat: 'remainder'
+      };
+    }
+    
     if (currentMode === '9x9') {
       a = Math.floor(Math.random() * 8) + 2;
       b = Math.floor(Math.random() * 8) + 2;
@@ -249,9 +279,17 @@ const MentalMathGame = () => {
   const inputNumber = (num) => {
     if (feedback) return;
     playSound('button');
-    if (userAnswer.length < 5) {
+    if (userAnswer.length < 10) {
       setUserAnswer(userAnswer + num);
     }
+  };
+
+  const inputEllipsis = () => {
+    if (feedback) return;
+    if (userAnswer.includes('⋯')) return;
+    if (userAnswer === '') return;
+    playSound('button');
+    setUserAnswer(userAnswer + '⋯');
   };
 
   const clearInput = () => {
@@ -271,7 +309,23 @@ const MentalMathGame = () => {
     playSound('submit');
 
     const elapsed = Date.now() - problemStartTime;
-    const isCorrect = parseInt(userAnswer) === currentProblem.answer;
+    let isCorrect = false;
+    
+    if (currentProblem.displayFormat === 'remainder') {
+      // 余りモード
+      if (userAnswer.includes('⋯')) {
+        const [q, r] = userAnswer.split('⋯').map(s => parseInt(s));
+        isCorrect = !isNaN(q) && !isNaN(r) && 
+                    q === currentProblem.answer.quotient && 
+                    r === currentProblem.answer.remainder;
+      }
+    } else if (currentProblem.operator === 'doomsday') {
+      // 曜日計算
+      isCorrect = parseInt(userAnswer) === currentProblem.answer;
+    } else {
+      // 通常モード
+      isCorrect = parseInt(userAnswer) === currentProblem.answer;
+    }
     
     if (isCorrect) {
       const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -290,12 +344,16 @@ const MentalMathGame = () => {
         ? currentProblem.displayText
         : currentProblem.operator === '²' 
           ? `${currentProblem.a}²`
-          : `${currentProblem.a}${currentProblem.operator}${currentProblem.b}`;
+          : currentProblem.displayFormat === 'remainder'
+            ? `${currentProblem.a}÷${currentProblem.b}`
+            : `${currentProblem.a}${currentProblem.operator}${currentProblem.b}`;
       
       const newTimings = [...timings, {
         problem: problemStr,
         time: elapsed,
-        answer: currentProblem.answer
+        answer: currentProblem.displayFormat === 'remainder' 
+          ? `${currentProblem.answer.quotient}⋯${currentProblem.answer.remainder}`
+          : currentProblem.answer
       }];
       setTimings(newTimings);
       setCorrectCount(correctCount + 1);
@@ -421,6 +479,26 @@ const MentalMathGame = () => {
 
           <div className="mb-4">
             <h2 className="text-base sm:text-lg font-bold text-gray-700 mb-2 flex items-center gap-2">
+              ➖ 引き算
+            </h2>
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                onClick={() => startGame('99-99')}
+                className="bg-gradient-to-r from-teal-400 to-cyan-500 text-white py-3 rounded-xl font-bold text-base sm:text-lg hover:from-teal-500 hover:to-cyan-600 transition transform hover:scale-105 shadow-lg"
+              >
+                99-99
+              </button>
+              <button
+                onClick={() => startGame('999-999')}
+                className="bg-gradient-to-r from-teal-400 to-cyan-500 text-white py-3 rounded-xl font-bold text-base sm:text-lg hover:from-teal-500 hover:to-cyan-600 transition transform hover:scale-105 shadow-lg"
+              >
+                999-999
+              </button>
+            </div>
+          </div>
+
+          <div className="mb-4">
+            <h2 className="text-base sm:text-lg font-bold text-gray-700 mb-2 flex items-center gap-2">
               ✕ 掛け算
             </h2>
             <div className="grid grid-cols-3 gap-2">
@@ -455,6 +533,26 @@ const MentalMathGame = () => {
                 className="bg-gradient-to-r from-red-400 to-rose-500 text-white py-3 rounded-xl font-bold text-base sm:text-lg hover:from-red-500 hover:to-rose-600 transition transform hover:scale-105 shadow-lg"
               >
                 99×99
+              </button>
+            </div>
+          </div>
+
+          <div className="mb-4">
+            <h2 className="text-base sm:text-lg font-bold text-gray-700 mb-2 flex items-center gap-2">
+              ➗ 割り算
+            </h2>
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                onClick={() => startGame('81÷9')}
+                className="bg-gradient-to-r from-purple-400 to-pink-500 text-white py-3 rounded-xl font-bold text-base sm:text-lg hover:from-purple-500 hover:to-pink-600 transition transform hover:scale-105 shadow-lg"
+              >
+                81÷9
+              </button>
+              <button
+                onClick={() => startGame('99÷9')}
+                className="bg-gradient-to-r from-pink-400 to-rose-500 text-white py-3 rounded-xl font-bold text-base sm:text-lg hover:from-pink-500 hover:to-rose-600 transition transform hover:scale-105 shadow-lg"
+              >
+                99÷9
               </button>
             </div>
           </div>
@@ -571,49 +669,116 @@ const MentalMathGame = () => {
           </div>
 
           <div className="flex-none bg-white rounded-xl p-2 shadow-xl mb-4 sm:mb-6">
-            <div className="flex flex-col items-center gap-2">
-              <div className="grid grid-cols-3 gap-2">
-                {[7, 8, 9, 4, 5, 6, 1, 2, 3].map(num => (
-                  <button
-                    key={num}
-                    onClick={() => inputNumber(num.toString())}
-                    disabled={feedback !== null}
-                    className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 rounded-xl text-4xl font-bold text-gray-700 shadow-md active:scale-95 transition disabled:opacity-50"
-                  >
-                    {num}
-                  </button>
-                ))}
-              </div>
+            <div className="grid grid-cols-4 gap-2">
+              {/* Row 1 */}
+              <button
+                onClick={() => inputNumber('7')}
+                disabled={feedback !== null}
+                className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 rounded-xl text-3xl sm:text-4xl font-bold text-gray-700 shadow-md active:scale-95 transition disabled:opacity-50"
+              >
+                7
+              </button>
+              <button
+                onClick={() => inputNumber('8')}
+                disabled={feedback !== null}
+                className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 rounded-xl text-3xl sm:text-4xl font-bold text-gray-700 shadow-md active:scale-95 transition disabled:opacity-50"
+              >
+                8
+              </button>
+              <button
+                onClick={() => inputNumber('9')}
+                disabled={feedback !== null}
+                className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 rounded-xl text-3xl sm:text-4xl font-bold text-gray-700 shadow-md active:scale-95 transition disabled:opacity-50"
+              >
+                9
+              </button>
+              <button
+                onClick={backspace}
+                disabled={feedback !== null}
+                className="aspect-square bg-gradient-to-br from-yellow-100 to-yellow-200 hover:from-yellow-200 hover:to-yellow-300 rounded-xl text-2xl sm:text-3xl font-bold text-yellow-700 shadow-md active:scale-95 transition disabled:opacity-50"
+              >
+                ⌫
+              </button>
               
-              <div className="flex gap-2">
-                <button
-                  onClick={clearInput}
-                  disabled={feedback !== null}
-                  className="w-20 h-20 bg-gradient-to-br from-red-100 to-red-200 hover:from-red-200 hover:to-red-300 rounded-xl text-4xl font-bold text-red-700 shadow-md active:scale-95 transition disabled:opacity-50"
-                >
-                  C
-                </button>
-                
-                <button
-                  onClick={() => inputNumber('0')}
-                  disabled={feedback !== null}
-                  className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 rounded-xl text-4xl font-bold text-gray-700 shadow-md active:scale-95 transition disabled:opacity-50"
-                >
-                  0
-                </button>
-                
-                <button
-                  onClick={submitAnswer}
-                  disabled={!userAnswer || feedback !== null}
-                  className={`w-20 h-20 rounded-xl text-3xl font-bold shadow-md active:scale-95 transition ${
-                    userAnswer && !feedback
-                      ? 'bg-gradient-to-br from-green-400 to-green-500 hover:from-green-500 hover:to-green-600 text-white'
-                      : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                  }`}
-                >
-                  ✓
-                </button>
-              </div>
+              {/* Row 2 */}
+              <button
+                onClick={() => inputNumber('4')}
+                disabled={feedback !== null}
+                className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 rounded-xl text-3xl sm:text-4xl font-bold text-gray-700 shadow-md active:scale-95 transition disabled:opacity-50"
+              >
+                4
+              </button>
+              <button
+                onClick={() => inputNumber('5')}
+                disabled={feedback !== null}
+                className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 rounded-xl text-3xl sm:text-4xl font-bold text-gray-700 shadow-md active:scale-95 transition disabled:opacity-50"
+              >
+                5
+              </button>
+              <button
+                onClick={() => inputNumber('6')}
+                disabled={feedback !== null}
+                className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 rounded-xl text-3xl sm:text-4xl font-bold text-gray-700 shadow-md active:scale-95 transition disabled:opacity-50"
+              >
+                6
+              </button>
+              <button
+                onClick={clearInput}
+                disabled={feedback !== null}
+                className="aspect-square bg-gradient-to-br from-red-100 to-red-200 hover:from-red-200 hover:to-red-300 rounded-xl text-3xl sm:text-4xl font-bold text-red-700 shadow-md active:scale-95 transition disabled:opacity-50"
+              >
+                C
+              </button>
+              
+              {/* Row 3 */}
+              <button
+                onClick={() => inputNumber('1')}
+                disabled={feedback !== null}
+                className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 rounded-xl text-3xl sm:text-4xl font-bold text-gray-700 shadow-md active:scale-95 transition disabled:opacity-50"
+              >
+                1
+              </button>
+              <button
+                onClick={() => inputNumber('2')}
+                disabled={feedback !== null}
+                className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 rounded-xl text-3xl sm:text-4xl font-bold text-gray-700 shadow-md active:scale-95 transition disabled:opacity-50"
+              >
+                2
+              </button>
+              <button
+                onClick={() => inputNumber('3')}
+                disabled={feedback !== null}
+                className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 rounded-xl text-3xl sm:text-4xl font-bold text-gray-700 shadow-md active:scale-95 transition disabled:opacity-50"
+              >
+                3
+              </button>
+              <button
+                onClick={inputEllipsis}
+                disabled={feedback !== null}
+                className="aspect-square bg-gradient-to-br from-blue-100 to-blue-200 hover:from-blue-200 hover:to-blue-300 rounded-xl text-3xl sm:text-4xl font-bold text-blue-700 shadow-md active:scale-95 transition disabled:opacity-50"
+              >
+                ⋯
+              </button>
+              
+              {/* Row 4 */}
+              <button
+                onClick={() => inputNumber('0')}
+                disabled={feedback !== null}
+                className="col-span-3 aspect-[3/1] bg-gradient-to-br from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 rounded-xl text-3xl sm:text-4xl font-bold text-gray-700 shadow-md active:scale-95 transition disabled:opacity-50"
+              >
+                0
+              </button>
+              <button
+                onClick={submitAnswer}
+                disabled={!userAnswer || feedback !== null}
+                className={`aspect-square rounded-xl text-3xl sm:text-4xl font-bold shadow-md active:scale-95 transition ${
+                  userAnswer && !feedback
+                    ? 'bg-gradient-to-br from-green-400 to-green-500 hover:from-green-500 hover:to-green-600 text-white'
+                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                }`}
+              >
+                ✓
+              </button>
             </div>
           </div>
 
