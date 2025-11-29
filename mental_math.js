@@ -1,10 +1,10 @@
-// mental_math.js v0.8.1
-// fix: v0.8.1 - Fix remainder validation, improve button layout and UI consistency
+// mental_math.js v0.8.2
+// fix: v0.8.2 - Improve button styling, add + key for remainder, fix iPad layout
 
 import React, { useState, useEffect, useRef } from 'react';
 
 const MentalMathGame = () => {
-  const VERSION = 'v0.8.1';
+  const VERSION = 'v0.8.2';
   const TOTAL_PROBLEMS = 10;
 
   // 基本設定
@@ -429,6 +429,8 @@ const MentalMathGame = () => {
         backspace();
       } else if (e.key === 'Escape') {
         clearInput();
+      } else if (e.key === '+') {
+        inputEllipsis();
       }
     };
 
@@ -608,7 +610,7 @@ const MentalMathGame = () => {
 
     return (
       <div className="min-h-screen bg-gradient-to-b from-blue-300 to-purple-400 flex items-center justify-center p-2 sm:p-4">
-        <div className="max-w-md w-full flex flex-col" style={{ minHeight: '100vh' }}>
+        <div className="max-w-md w-full flex flex-col h-full">
           <div className="flex justify-between items-center mb-1 flex-none">
             <button 
               onClick={backToMenu}
@@ -709,7 +711,7 @@ const MentalMathGame = () => {
               <button
                 onClick={backspace}
                 disabled={feedback !== null}
-                className="aspect-square bg-gradient-to-br from-yellow-100 to-yellow-200 hover:from-yellow-200 hover:to-yellow-300 rounded-xl text-2xl sm:text-3xl font-bold text-yellow-700 shadow-md active:scale-95 transition disabled:opacity-50"
+                className="aspect-square bg-gradient-to-br from-gray-300 to-gray-400 hover:from-gray-400 hover:to-gray-500 rounded-xl text-3xl sm:text-4xl font-bold text-gray-700 shadow-md active:scale-95 transition disabled:opacity-50"
               >
                 ⌫
               </button>
@@ -739,7 +741,7 @@ const MentalMathGame = () => {
               <button
                 onClick={clearInput}
                 disabled={feedback !== null}
-                className="aspect-square bg-gradient-to-br from-yellow-100 to-yellow-200 hover:from-yellow-200 hover:to-yellow-300 rounded-xl text-3xl sm:text-4xl font-bold text-yellow-700 shadow-md active:scale-95 transition disabled:opacity-50"
+                className="aspect-square bg-gradient-to-br from-gray-300 to-gray-400 hover:from-gray-400 hover:to-gray-500 rounded-xl text-3xl sm:text-4xl font-bold text-gray-700 shadow-md active:scale-95 transition disabled:opacity-50"
               >
                 C
               </button>
@@ -789,7 +791,7 @@ const MentalMathGame = () => {
               <button
                 onClick={inputEllipsis}
                 disabled={feedback !== null}
-                className="aspect-square bg-gradient-to-br from-blue-100 to-blue-200 hover:from-blue-200 hover:to-blue-300 rounded-xl text-3xl sm:text-4xl font-bold text-blue-700 shadow-md active:scale-95 transition disabled:opacity-50"
+                className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 rounded-xl text-3xl sm:text-4xl font-bold text-gray-700 shadow-md active:scale-95 transition disabled:opacity-50"
               >
                 ⋯
               </button>
