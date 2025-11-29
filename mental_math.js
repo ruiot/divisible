@@ -1,10 +1,10 @@
-// mental_math.js v0.8.0
-// feat: v0.8.0 - Add subtraction and division modes with remainder support
+// mental_math.js v0.8.1
+// fix: v0.8.1 - Fix remainder validation, improve button layout and UI consistency
 
 import React, { useState, useEffect, useRef } from 'react';
 
 const MentalMathGame = () => {
-  const VERSION = 'v0.8.0';
+  const VERSION = 'v0.8.1';
   const TOTAL_PROBLEMS = 10;
 
   // 基本設定
@@ -318,13 +318,27 @@ const MentalMathGame = () => {
         isCorrect = !isNaN(q) && !isNaN(r) && 
                     q === currentProblem.answer.quotient && 
                     r === currentProblem.answer.remainder;
+      } else {
+        // 余り記号なし: 余りがゼロの場合のみ正解
+        const q = parseInt(userAnswer);
+        isCorrect = !isNaN(q) && 
+                    q === currentProblem.answer.quotient && 
+                    currentProblem.answer.remainder === 0;
       }
     } else if (currentProblem.operator === 'doomsday') {
-      // 曜日計算
-      isCorrect = parseInt(userAnswer) === currentProblem.answer;
+      // 曜日計算: 余り記号があれば不正解
+      if (userAnswer.includes('⋯')) {
+        isCorrect = false;
+      } else {
+        isCorrect = parseInt(userAnswer) === currentProblem.answer;
+      }
     } else {
-      // 通常モード
-      isCorrect = parseInt(userAnswer) === currentProblem.answer;
+      // 通常モード: 余り記号があれば不正解
+      if (userAnswer.includes('⋯')) {
+        isCorrect = false;
+      } else {
+        isCorrect = parseInt(userAnswer) === currentProblem.answer;
+      }
     }
     
     if (isCorrect) {
@@ -509,30 +523,30 @@ const MentalMathGame = () => {
                 9×9
               </button>
               <button
-                onClick={() => startGame('19x19')}
-                className="bg-gradient-to-r from-blue-400 to-indigo-500 text-white py-3 rounded-xl font-bold text-base sm:text-lg hover:from-blue-500 hover:to-indigo-600 transition transform hover:scale-105 shadow-lg"
-              >
-                19×19
-              </button>
-              <button
                 onClick={() => startGame('99x9')}
                 className="bg-gradient-to-r from-orange-400 to-amber-500 text-white py-3 rounded-xl font-bold text-base sm:text-lg hover:from-orange-500 hover:to-amber-600 transition transform hover:scale-105 shadow-lg"
               >
                 99×9
-              </button>
-            </div>
-            <div className="grid grid-cols-3 gap-2 mt-2">
-              <button
-                onClick={() => startGame('99^2')}
-                className="bg-gradient-to-r from-orange-500 to-red-500 text-white py-3 rounded-xl font-bold text-base sm:text-lg hover:from-orange-600 hover:to-red-600 transition transform hover:scale-105 shadow-lg"
-              >
-                99²
               </button>
               <button
                 onClick={() => startGame('99x99')}
                 className="bg-gradient-to-r from-red-400 to-rose-500 text-white py-3 rounded-xl font-bold text-base sm:text-lg hover:from-red-500 hover:to-rose-600 transition transform hover:scale-105 shadow-lg"
               >
                 99×99
+              </button>
+            </div>
+            <div className="grid grid-cols-3 gap-2 mt-2">
+              <button
+                onClick={() => startGame('19x19')}
+                className="bg-gradient-to-r from-blue-400 to-indigo-500 text-white py-3 rounded-xl font-bold text-base sm:text-lg hover:from-blue-500 hover:to-indigo-600 transition transform hover:scale-105 shadow-lg"
+              >
+                19×19
+              </button>
+              <button
+                onClick={() => startGame('99^2')}
+                className="bg-gradient-to-r from-orange-500 to-red-500 text-white py-3 rounded-xl font-bold text-base sm:text-lg hover:from-orange-600 hover:to-red-600 transition transform hover:scale-105 shadow-lg"
+              >
+                99²
               </button>
             </div>
           </div>
@@ -627,18 +641,18 @@ const MentalMathGame = () => {
             </div>
           </div>
 
-          <div className="flex-1 max-h-[40vh] bg-white rounded-2xl shadow-xl flex flex-col items-center justify-center mb-2 relative p-4 overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-xl flex flex-col items-center justify-center mb-2 relative p-4 overflow-hidden" style={{ minHeight: '280px' }}>
             <div className="text-center w-full">
               {currentProblem.operator === 'doomsday' ? (
                 <div className="text-4xl sm:text-5xl md:text-6xl font-bold text-gray-800 mb-2 sm:mb-3">
                   {currentProblem.displayText}
                 </div>
               ) : mode === '99^2' ? (
-                <div className="text-6xl sm:text-7xl md:text-8xl font-bold text-gray-800 mb-2 sm:mb-3">
+                <div className="text-5xl sm:text-6xl md:text-7xl font-bold text-gray-800 mb-2 sm:mb-3 whitespace-nowrap">
                   {currentProblem.a}²
                 </div>
               ) : (
-                <div className="text-6xl sm:text-7xl md:text-8xl font-bold text-gray-800 mb-2 sm:mb-3">
+                <div className="text-5xl sm:text-6xl md:text-7xl font-bold text-gray-800 mb-2 sm:mb-3 whitespace-nowrap">
                   {currentProblem.a} {currentProblem.operator} {currentProblem.b}
                 </div>
               )}
@@ -725,7 +739,7 @@ const MentalMathGame = () => {
               <button
                 onClick={clearInput}
                 disabled={feedback !== null}
-                className="aspect-square bg-gradient-to-br from-red-100 to-red-200 hover:from-red-200 hover:to-red-300 rounded-xl text-3xl sm:text-4xl font-bold text-red-700 shadow-md active:scale-95 transition disabled:opacity-50"
+                className="aspect-square bg-gradient-to-br from-yellow-100 to-yellow-200 hover:from-yellow-200 hover:to-yellow-300 rounded-xl text-3xl sm:text-4xl font-bold text-yellow-700 shadow-md active:scale-95 transition disabled:opacity-50"
               >
                 C
               </button>
@@ -753,31 +767,31 @@ const MentalMathGame = () => {
                 3
               </button>
               <button
-                onClick={inputEllipsis}
-                disabled={feedback !== null}
-                className="aspect-square bg-gradient-to-br from-blue-100 to-blue-200 hover:from-blue-200 hover:to-blue-300 rounded-xl text-3xl sm:text-4xl font-bold text-blue-700 shadow-md active:scale-95 transition disabled:opacity-50"
-              >
-                ⋯
-              </button>
-              
-              {/* Row 4 */}
-              <button
-                onClick={() => inputNumber('0')}
-                disabled={feedback !== null}
-                className="col-span-3 aspect-[3/1] bg-gradient-to-br from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 rounded-xl text-3xl sm:text-4xl font-bold text-gray-700 shadow-md active:scale-95 transition disabled:opacity-50"
-              >
-                0
-              </button>
-              <button
                 onClick={submitAnswer}
                 disabled={!userAnswer || feedback !== null}
-                className={`aspect-square rounded-xl text-3xl sm:text-4xl font-bold shadow-md active:scale-95 transition ${
+                className={`row-span-2 rounded-xl text-3xl sm:text-4xl font-bold shadow-md active:scale-95 transition ${
                   userAnswer && !feedback
                     ? 'bg-gradient-to-br from-green-400 to-green-500 hover:from-green-500 hover:to-green-600 text-white'
                     : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                 }`}
               >
                 ✓
+              </button>
+              
+              {/* Row 4 */}
+              <button
+                onClick={() => inputNumber('0')}
+                disabled={feedback !== null}
+                className="col-span-2 aspect-[2/1] bg-gradient-to-br from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 rounded-xl text-3xl sm:text-4xl font-bold text-gray-700 shadow-md active:scale-95 transition disabled:opacity-50"
+              >
+                0
+              </button>
+              <button
+                onClick={inputEllipsis}
+                disabled={feedback !== null}
+                className="aspect-square bg-gradient-to-br from-blue-100 to-blue-200 hover:from-blue-200 hover:to-blue-300 rounded-xl text-3xl sm:text-4xl font-bold text-blue-700 shadow-md active:scale-95 transition disabled:opacity-50"
+              >
+                ⋯
               </button>
             </div>
           </div>
