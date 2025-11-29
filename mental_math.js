@@ -1,10 +1,10 @@
-// mental_math.js v0.8.2
-// fix: v0.8.2 - Improve button styling, add + key for remainder, fix iPad layout
+// mental_math.js v0.8.3
+// feat: v0.8.3 - Add Survival Mix mode with 3-lives system
 
 import React, { useState, useEffect, useRef } from 'react';
 
 const MentalMathGame = () => {
-  const VERSION = 'v0.8.2';
+  const VERSION = 'v0.8.3';
   const TOTAL_PROBLEMS = 10;
 
   // 基本設定
@@ -19,6 +19,7 @@ const MentalMathGame = () => {
   const [problemIndex, setProblemIndex] = useState(0);
   const [timings, setTimings] = useState([]); // { problem: '12×16', time: 8500, answer: 192 }
   const [mistakeCount, setMistakeCount] = useState(0);
+  const [lives, setLives] = useState(3); // Survival mode only
   
   // 重複防止用: 使用済み問題のセット
   const [usedProblems, setUsedProblems] = useState(new Set());
@@ -74,6 +75,16 @@ const MentalMathGame = () => {
       gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
       osc.start(ctx.currentTime);
       osc.stop(ctx.currentTime + 0.42);
+    } else if (type === 'gameover') {
+      // ゲームオーバー音 (下降)
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(300, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.5);
+      gain.gain.setValueAtTime(0, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.3, ctx.currentTime + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.52);
     } else if (type === 'button') {
       // クリック音 (短く軽い)
       osc.type = 'sine';
@@ -118,6 +129,24 @@ const MentalMathGame = () => {
   const generateProblem = (selectedMode) => {
     const currentMode = selectedMode || mode;
     let a, b;
+    
+    // Survival Mix mode
+    if (currentMode === 'mix-survival') {
+      const modes = [
+        '99+9',      // 2桁 + 1桁
+        '99+99',     // 2桁 + 2桁
+        '999+999',   // 3桁 + 3桁
+        '99-99',     // 2桁 - 2桁
+        '999-999',   // 3桁 - 3桁
+        '99x9',      // 2桁 × 1桁
+        '19x19',     // 11-19 × 11-19
+        '99^2',      // 2桁の2乗
+        '99x99',     // 2桁 × 2桁
+        '99÷9'       // 2桁 ÷ 1桁（余りあり）
+      ];
+      const randomMode = modes[Math.floor(Math.random() * modes.length)];
+      return generateProblem(randomMode);
+    }
     
     if (currentMode === 'doomsday-easy') {
       const currentYear = new Date().getFullYear();
@@ -257,6 +286,7 @@ const MentalMathGame = () => {
     setProblemIndex(0);
     setTimings([]);
     setMistakeCount(0);
+    setLives(3);
     setUserAnswer('');
     setFeedback(null);
     
@@ -319,11 +349,9 @@ const MentalMathGame = () => {
                     q === currentProblem.answer.quotient && 
                     r === currentProblem.answer.remainder;
       } else {
-        // 余り記号なし: 余りがゼロの場合のみ正解
+        // 余り記号なし: 商が合っていればOK（余りゼロを許容）
         const q = parseInt(userAnswer);
-        isCorrect = !isNaN(q) && 
-                    q === currentProblem.answer.quotient && 
-                    currentProblem.answer.remainder === 0;
+        isCorrect = !isNaN(q) && q === currentProblem.answer.quotient;
       }
     } else if (currentProblem.operator === 'doomsday') {
       // 曜日計算: 余り記号があれば不正解
@@ -376,7 +404,9 @@ const MentalMathGame = () => {
         setFeedback(null);
         setUserAnswer('');
         
-        if (problemIndex + 1 >= TOTAL_PROBLEMS) {
+        const totalProblems = mode === 'mix-survival' ? Infinity : TOTAL_PROBLEMS;
+        
+        if (problemIndex + 1 >= totalProblems) {
           playSound('finish');
           setGameState('finished');
         } else {
@@ -401,6 +431,20 @@ const MentalMathGame = () => {
       }, 300);
     } else {
       setMistakeCount(mistakeCount + 1);
+      
+      // Survival mode: lose a life
+      if (mode === 'mix-survival') {
+        const newLives = lives - 1;
+        setLives(newLives);
+        
+        if (newLives <= 0) {
+          playSound('gameover');
+          setTimeout(() => {
+            setGameState('finished');
+          }, 800);
+          return;
+        }
+      }
       
       setTimeout(() => {
         setFeedback(null);
@@ -573,7 +617,7 @@ const MentalMathGame = () => {
             </div>
           </div>
 
-          <div>
+          <div className="mb-4">
             <h2 className="text-base sm:text-lg font-bold text-gray-700 mb-2 flex items-center gap-2">
               📅 曜日計算
             </h2>
@@ -591,6 +635,19 @@ const MentalMathGame = () => {
                 1900-<br/>2099
               </button>
             </div>
+          </div>
+
+          <div className="mb-4">
+            <h2 className="text-base sm:text-lg font-bold text-gray-700 mb-2 flex items-center gap-2">
+              🏆 Survival
+            </h2>
+            <button
+              onClick={() => startGame('mix-survival')}
+              className="w-full bg-gradient-to-r from-red-500 to-orange-600 text-white py-4 rounded-xl font-bold text-lg hover:from-red-600 hover:to-orange-700 transition transform hover:scale-105 shadow-lg"
+            >
+              Survival Mix
+              <div className="text-sm opacity-90 font-normal">3 strikes and you're out</div>
+            </button>
           </div>
 
           <div className="mt-4 text-center text-xs text-gray-400">
@@ -618,10 +675,20 @@ const MentalMathGame = () => {
             >
               ← メニュー
             </button>
-            <div className="font-bold text-white text-xs sm:text-sm">{mode}</div>
-            <div className="text-white font-mono text-xs sm:text-sm">
-              {problemIndex + 1}/{TOTAL_PROBLEMS}
+            <div className="font-bold text-white text-xs sm:text-sm">
+              {mode === 'mix-survival' ? 'Survival' : mode}
             </div>
+            {mode === 'mix-survival' ? (
+              <div className="text-white font-bold text-sm flex items-center gap-1">
+                <span>❤️</span>
+                <span>×</span>
+                <span className="text-lg">{lives}</span>
+              </div>
+            ) : (
+              <div className="text-white font-mono text-xs sm:text-sm">
+                {problemIndex + 1}/{TOTAL_PROBLEMS}
+              </div>
+            )}
           </div>
 
           <div className="bg-white rounded-lg px-2 sm:px-3 py-1 mb-2 flex-none">
@@ -809,22 +876,35 @@ const MentalMathGame = () => {
   // 終了画面
   if (gameState === 'finished') {
     const totalTime = timings.reduce((a, b) => a + b.time, 0) / 1000;
-    const avgTime = totalTime / TOTAL_PROBLEMS;
+    const avgTime = timings.length > 0 ? totalTime / timings.length : 0;
     
-    // 時間順にソート
-    const sortedTimings = [...timings].sort((a, b) => b.time - a.time);
+    // 通常モードのみ問題別タイムを表示
+    const showDetailedTimings = mode !== 'mix-survival';
+    const sortedTimings = showDetailedTimings ? [...timings].sort((a, b) => b.time - a.time) : [];
     const maxTime = sortedTimings[0]?.time || 1;
 
     return (
       <div className="min-h-screen bg-gradient-to-b from-blue-300 to-purple-400 flex items-center justify-center p-4">
         <div className="bg-white rounded-3xl p-4 sm:p-6 max-w-md w-full shadow-2xl">
-          <div className="text-5xl sm:text-6xl mb-2 sm:mb-3 text-center">🎉</div>
+          <div className="text-5xl sm:text-6xl mb-2 sm:mb-3 text-center">
+            {mode === 'mix-survival' ? '💀' : '🎉'}
+          </div>
           
-          <h2 className="text-2xl sm:text-3xl font-bold mb-2 sm:mb-3 text-green-600 text-center">
-            完了!
+          <h2 className="text-2xl sm:text-3xl font-bold mb-2 sm:mb-3 text-center">
+            {mode === 'mix-survival' ? (
+              <span className="text-red-600">Game Over!</span>
+            ) : (
+              <span className="text-green-600">完了!</span>
+            )}
           </h2>
           
           <div className="bg-gray-100 rounded-xl p-3 mb-3 sm:mb-4 space-y-1 text-xs sm:text-sm">
+            <div className="flex justify-between">
+              <span className="text-gray-600">
+                {mode === 'mix-survival' ? 'Survived:' : '解いた問題数:'}
+              </span>
+              <span className="font-mono font-bold">{timings.length}問</span>
+            </div>
             <div className="flex justify-between">
               <span className="text-gray-600">合計時間:</span>
               <span className="font-mono font-bold">{totalTime.toFixed(1)}秒</span>
@@ -839,34 +919,36 @@ const MentalMathGame = () => {
             </div>
           </div>
 
-          <div className="mb-3 sm:mb-4">
-            <h3 className="text-xs sm:text-sm font-bold text-gray-700 mb-2">問題別タイム</h3>
-            <div className="space-y-1 sm:space-y-1.5">
-              {sortedTimings.map((item, idx) => {
-                const percentage = (item.time / maxTime) * 100;
-                const timeText = (item.time / 1000).toFixed(1) + '秒';
-                return (
-                  <div key={idx} className="flex items-center gap-1 sm:gap-2">
-                    <div className="w-16 sm:w-20 text-right font-mono text-gray-600 text-xs">
-                      {item.problem}
-                    </div>
-                    <div className="flex-1 flex items-center gap-1">
-                      <div className="flex-1 bg-gray-200 rounded-full h-5 sm:h-6 overflow-hidden">
-                        <div 
-                          className="bg-gradient-to-r from-blue-400 to-purple-500 h-full transition-all"
-                          style={{ width: `${percentage}%` }}
-                        >
+          {showDetailedTimings && (
+            <div className="mb-3 sm:mb-4">
+              <h3 className="text-xs sm:text-sm font-bold text-gray-700 mb-2">問題別タイム</h3>
+              <div className="space-y-1 sm:space-y-1.5">
+                {sortedTimings.map((item, idx) => {
+                  const percentage = (item.time / maxTime) * 100;
+                  const timeText = (item.time / 1000).toFixed(1) + '秒';
+                  return (
+                    <div key={idx} className="flex items-center gap-1 sm:gap-2">
+                      <div className="w-16 sm:w-20 text-right font-mono text-gray-600 text-xs">
+                        {item.problem}
+                      </div>
+                      <div className="flex-1 flex items-center gap-1">
+                        <div className="flex-1 bg-gray-200 rounded-full h-5 sm:h-6 overflow-hidden">
+                          <div 
+                            className="bg-gradient-to-r from-blue-400 to-purple-500 h-full transition-all"
+                            style={{ width: `${percentage}%` }}
+                          >
+                          </div>
+                        </div>
+                        <div className="w-12 sm:w-14 text-xs font-bold text-gray-700 font-mono">
+                          {timeText}
                         </div>
                       </div>
-                      <div className="w-12 sm:w-14 text-xs font-bold text-gray-700 font-mono">
-                        {timeText}
-                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="space-y-2">
             <button
