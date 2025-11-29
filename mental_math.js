@@ -1,10 +1,10 @@
-// mental_math.js v0.8.3
-// feat: v0.8.3 - Add Survival Mix mode with 3-lives system
+// mental_math.js v0.8.4
+// fix: v0.8.4 - Remove 99^2 from Survival Mix mode to fix display bug
 
 import React, { useState, useEffect, useRef } from 'react';
 
 const MentalMathGame = () => {
-  const VERSION = 'v0.8.3';
+  const VERSION = 'v0.8.4';
   const TOTAL_PROBLEMS = 10;
 
   // 基本設定
@@ -140,7 +140,7 @@ const MentalMathGame = () => {
         '999-999',   // 3桁 - 3桁
         '99x9',      // 2桁 × 1桁
         '19x19',     // 11-19 × 11-19
-        '99^2',      // 2桁の2乗
+        //'99^2',      // 2桁の2乗
         '99x99',     // 2桁 × 2桁
         '99÷9'       // 2桁 ÷ 1桁（余りあり）
       ];
