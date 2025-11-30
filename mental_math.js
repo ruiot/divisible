@@ -1,10 +1,10 @@
-// mental_math.js v0.9.0
-// feat: v0.9.0 - Add decimal division mode (100÷11), Fredoka One font, improved menu layout
+// mental_math.js v0.9.1
+// fix: v0.9.1 - Unify minus sign, button widths, move icons to headings, reorder modes, faster feedback, flexible decimal input, hide decimal division answers
 
 import React, { useState, useEffect, useRef } from 'react';
 
 const MentalMathGame = () => {
-  const VERSION = 'v0.9.0';
+  const VERSION = 'v0.9.1';
   const TOTAL_PROBLEMS = 10;
 
   // 基本設定
@@ -169,9 +169,11 @@ const MentalMathGame = () => {
   const checkRepeatingDecimal = (userInput, correctDecimal) => {
     const { integerPart, nonRepeating, repeating, isTerminating } = correctDecimal;
 
-    // 小数点を含まない場合は不正解
+    // 小数点を含まない場合でも整数部分のみで判定
     if (!userInput.includes('.')) {
-      return false;
+      const userInteger = parseInt(userInput);
+      // 整数部分が一致し、小数部分がない（または0）場合はOK
+      return userInteger === integerPart && (nonRepeating === '' || nonRepeating === '0');
     }
 
     const parts = userInput.split('.');
@@ -339,11 +341,11 @@ const MentalMathGame = () => {
     if (currentMode === '99-99') {
       a = Math.floor(Math.random() * 90) + 10;
       b = Math.floor(Math.random() * a);
-      return { a, b, answer: a - b, operator: '-' };
+      return { a, b, answer: a - b, operator: '−' };
     } else if (currentMode === '999-999') {
       a = Math.floor(Math.random() * 900) + 100;
       b = Math.floor(Math.random() * a);
-      return { a, b, answer: a - b, operator: '-' };
+      return { a, b, answer: a - b, operator: '−' };
     }
     
     if (currentMode === '81÷9') {
@@ -503,25 +505,20 @@ const MentalMathGame = () => {
       } else {
         // 余り記号なし: 商が合っていればOK（余りゼロを許容）
         const q = parseInt(userAnswer);
-        isCorrect = !isNaN(q) && q === currentProblem.answer.quotient;
+        isCorrect = !isNaN(q) && q === currentProblem.answer.quotient && currentProblem.answer.remainder === 0;
       }
     } else if (currentProblem.displayFormat === 'decimal') {
       // 小数点モード（循環小数）
       isCorrect = checkRepeatingDecimal(userAnswer, currentProblem.answer);
     } else if (currentProblem.operator === 'doomsday') {
-      // 曜日計算: 余り記号・小数点があれば不正解
-      if (userAnswer.includes('⋯') || userAnswer.includes('.')) {
-        isCorrect = false;
-      } else {
-        isCorrect = parseInt(userAnswer) === currentProblem.answer;
-      }
+      // 曜日計算
+      // 小数点があっても整数部分で判定（parseFloatで処理）
+      const userNum = parseFloat(userAnswer);
+      isCorrect = !isNaN(userNum) && Math.floor(userNum) === currentProblem.answer;
     } else {
-      // 通常モード: 余り記号・小数点があれば不正解
-      if (userAnswer.includes('⋯') || userAnswer.includes('.')) {
-        isCorrect = false;
-      } else {
-        isCorrect = parseInt(userAnswer) === currentProblem.answer;
-      }
+      // 通常モード: 小数点があっても parseFloat で比較
+      const userNum = parseFloat(userAnswer);
+      isCorrect = !isNaN(userNum) && userNum === currentProblem.answer;
     }
     
     if (isCorrect) {
@@ -529,18 +526,19 @@ const MentalMathGame = () => {
       setFeedback({ 
         type: 'correct', 
         dayName: currentProblem.operator === 'doomsday' ? dayNames[currentProblem.answer] : null,
-        correctAnswer: currentProblem.displayFormat === 'decimal' 
-          ? formatRepeatingDecimal(currentProblem.answer)
-          : null
+        correctAnswer: null // 正解時は表示しない
       });
     } else {
+      // 不正解時: 小数点割り算モードでは正解を表示しない
+      const showCorrectAnswer = currentProblem.displayFormat !== 'decimal';
+      
       setFeedback({ 
         type: 'incorrect',
-        correctAnswer: currentProblem.displayFormat === 'decimal'
-          ? formatRepeatingDecimal(currentProblem.answer)
-          : currentProblem.displayFormat === 'remainder'
+        correctAnswer: showCorrectAnswer ? (
+          currentProblem.displayFormat === 'remainder'
             ? `${currentProblem.answer.quotient}⋯${currentProblem.answer.remainder}`
-            : null
+            : currentProblem.answer
+        ) : null
       });
     }
     
@@ -599,7 +597,7 @@ const MentalMathGame = () => {
             return newUsed;
           });
         }
-      }, 1500);
+      }, 800);
     } else {
       setMistakeCount(mistakeCount + 1);
       
@@ -620,7 +618,7 @@ const MentalMathGame = () => {
       setTimeout(() => {
         setFeedback(null);
         setUserAnswer('');
-      }, 1500);
+      }, 800);
     }
   };
 
@@ -657,11 +655,11 @@ const MentalMathGame = () => {
   const getWeekdayName = () => {
     if (!currentProblem || currentProblem.operator !== 'doomsday') return null;
     
-    const num = parseInt(userAnswer);
+    const num = parseFloat(userAnswer);
     if (isNaN(num) || num < 0 || num > 6) return null;
     
     const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    return dayNames[num];
+    return dayNames[Math.floor(num)];
   };
 
   if (gameState === 'menu') {
@@ -675,11 +673,13 @@ const MentalMathGame = () => {
             Mental Math
           </h1>
 
-          <div className="space-y-3">
+          <div className="space-y-4">
             {/* 足し算 */}
-            <div className="flex items-start gap-2">
-              <div className="text-2xl flex-shrink-0 w-8 text-center">+</div>
-              <div className="flex-1 grid grid-cols-3 gap-2">
+            <div>
+              <h2 className="text-lg font-bold text-gray-700 mb-2 flex items-center gap-2">
+                <span className="text-2xl">+</span> Addition
+              </h2>
+              <div className="grid grid-cols-3 gap-2">
                 <button
                   onClick={() => startGame('9+9')}
                   className="bg-gradient-to-r from-green-400 to-emerald-500 text-white py-2 px-1 rounded-xl font-bold text-sm hover:from-green-500 hover:to-emerald-600 transition transform hover:scale-105 shadow-lg"
@@ -698,9 +698,11 @@ const MentalMathGame = () => {
                 >
                   99+99
                 </button>
+              </div>
+              <div className="grid grid-cols-1 gap-2 mt-2">
                 <button
                   onClick={() => startGame('999+999')}
-                  className="col-span-3 bg-gradient-to-r from-green-400 to-emerald-500 text-white py-2 px-1 rounded-xl font-bold text-sm hover:from-green-500 hover:to-emerald-600 transition transform hover:scale-105 shadow-lg"
+                  className="bg-gradient-to-r from-green-400 to-emerald-500 text-white py-2 px-1 rounded-xl font-bold text-sm hover:from-green-500 hover:to-emerald-600 transition transform hover:scale-105 shadow-lg"
                 >
                   999+999
                 </button>
@@ -708,39 +710,37 @@ const MentalMathGame = () => {
             </div>
 
             {/* 引き算 */}
-            <div className="flex items-start gap-2">
-              <div className="text-2xl flex-shrink-0 w-8 text-center">-</div>
-              <div className="flex-1 grid grid-cols-3 gap-2">
+            <div>
+              <h2 className="text-lg font-bold text-gray-700 mb-2 flex items-center gap-2">
+                <span className="text-2xl">−</span> Subtraction
+              </h2>
+              <div className="grid grid-cols-2 gap-2">
                 <button
                   onClick={() => startGame('99-99')}
                   className="bg-gradient-to-r from-teal-400 to-cyan-500 text-white py-2 px-1 rounded-xl font-bold text-sm hover:from-teal-500 hover:to-cyan-600 transition transform hover:scale-105 shadow-lg"
                 >
-                  99-99
+                  99−99
                 </button>
                 <button
                   onClick={() => startGame('999-999')}
-                  className="col-span-2 bg-gradient-to-r from-teal-400 to-cyan-500 text-white py-2 px-1 rounded-xl font-bold text-sm hover:from-teal-500 hover:to-cyan-600 transition transform hover:scale-105 shadow-lg"
+                  className="bg-gradient-to-r from-teal-400 to-cyan-500 text-white py-2 px-1 rounded-xl font-bold text-sm hover:from-teal-500 hover:to-cyan-600 transition transform hover:scale-105 shadow-lg"
                 >
-                  999-999
+                  999−999
                 </button>
               </div>
             </div>
 
             {/* 掛け算 */}
-            <div className="flex items-start gap-2">
-              <div className="text-2xl flex-shrink-0 w-8 text-center">×</div>
-              <div className="flex-1 grid grid-cols-3 gap-2">
+            <div>
+              <h2 className="text-lg font-bold text-gray-700 mb-2 flex items-center gap-2">
+                <span className="text-2xl">×</span> Multiplication
+              </h2>
+              <div className="grid grid-cols-3 gap-2">
                 <button
                   onClick={() => startGame('9x9')}
                   className="bg-gradient-to-r from-blue-400 to-indigo-500 text-white py-2 px-1 rounded-xl font-bold text-sm hover:from-blue-500 hover:to-indigo-600 transition transform hover:scale-105 shadow-lg"
                 >
                   9×9
-                </button>
-                <button
-                  onClick={() => startGame('19x19')}
-                  className="bg-gradient-to-r from-blue-400 to-indigo-500 text-white py-2 px-1 rounded-xl font-bold text-sm hover:from-blue-500 hover:to-indigo-600 transition transform hover:scale-105 shadow-lg"
-                >
-                  19×19
                 </button>
                 <button
                   onClick={() => startGame('99x9')}
@@ -749,30 +749,42 @@ const MentalMathGame = () => {
                   99×9
                 </button>
                 <button
+                  onClick={() => startGame('99x99')}
+                  className="bg-gradient-to-r from-red-400 to-rose-500 text-white py-2 px-1 rounded-xl font-bold text-sm hover:from-red-500 hover:to-rose-600 transition transform hover:scale-105 shadow-lg"
+                >
+                  99×99
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-2 mt-2">
+                <button
+                  onClick={() => startGame('19x19')}
+                  className="bg-gradient-to-r from-blue-400 to-indigo-500 text-white py-2 px-1 rounded-xl font-bold text-sm hover:from-blue-500 hover:to-indigo-600 transition transform hover:scale-105 shadow-lg"
+                >
+                  19×19
+                </button>
+                <button
                   onClick={() => startGame('99^2')}
                   className="bg-gradient-to-r from-orange-500 to-red-500 text-white py-2 px-1 rounded-xl font-bold text-sm hover:from-orange-600 hover:to-red-600 transition transform hover:scale-105 shadow-lg"
                 >
                   99²
                 </button>
-                <button
-                  onClick={() => startGame('99x99')}
-                  className="col-span-2 bg-gradient-to-r from-red-400 to-rose-500 text-white py-2 px-1 rounded-xl font-bold text-sm hover:from-red-500 hover:to-rose-600 transition transform hover:scale-105 shadow-lg"
-                >
-                  99×99
-                </button>
               </div>
             </div>
 
             {/* 割り算 */}
-            <div className="flex items-start gap-2">
-              <div className="text-2xl flex-shrink-0 w-8 text-center">÷</div>
-              <div className="flex-1 grid grid-cols-2 gap-2">
+            <div>
+              <h2 className="text-lg font-bold text-gray-700 mb-2 flex items-center gap-2">
+                <span className="text-2xl">÷</span> Division
+              </h2>
+              <div className="grid grid-cols-1 gap-2">
                 <button
                   onClick={() => startGame('81÷9')}
                   className="bg-gradient-to-r from-purple-400 to-pink-500 text-white py-2 px-1 rounded-xl font-bold text-xs hover:from-purple-500 hover:to-pink-600 transition transform hover:scale-105 shadow-lg"
                 >
                   81÷9
                 </button>
+              </div>
+              <div className="grid grid-cols-2 gap-2 mt-2">
                 <button
                   onClick={() => startGame('100÷9')}
                   className="bg-gradient-to-r from-pink-400 to-rose-500 text-white py-2 px-1 rounded-xl font-bold text-xs hover:from-pink-500 hover:to-rose-600 transition transform hover:scale-105 shadow-lg"
@@ -781,44 +793,46 @@ const MentalMathGame = () => {
                 </button>
                 <button
                   onClick={() => startGame('100÷11')}
-                  className="col-span-2 bg-gradient-to-r from-violet-400 to-purple-500 text-white py-2 px-1 rounded-xl font-bold text-xs hover:from-violet-500 hover:to-purple-600 transition transform hover:scale-105 shadow-lg"
+                  className="bg-gradient-to-r from-violet-400 to-purple-500 text-white py-2 px-1 rounded-xl font-bold text-xs hover:from-violet-500 hover:to-purple-600 transition transform hover:scale-105 shadow-lg"
                 >
-                  100÷11=9.0̅9̅
+                  100÷11<br/>=9.0̅9̅
                 </button>
               </div>
             </div>
 
             {/* 曜日計算 */}
-            <div className="flex items-start gap-2">
-              <div className="text-2xl flex-shrink-0 w-8 text-center">📅</div>
-              <div className="flex-1 grid grid-cols-2 gap-2">
+            <div>
+              <h2 className="text-lg font-bold text-gray-700 mb-2 flex items-center gap-2">
+                <span className="text-2xl">📅</span> Weekday
+              </h2>
+              <div className="grid grid-cols-2 gap-2">
                 <button
                   onClick={() => startGame('doomsday-easy')}
                   className="bg-gradient-to-r from-cyan-400 to-blue-500 text-white py-2 px-1 rounded-xl font-bold text-xs hover:from-cyan-500 hover:to-blue-600 transition transform hover:scale-105 shadow-lg"
                 >
-                  {currentYear}-<br/>{currentYear + 1}
+                  {currentYear}−<br/>{currentYear + 1}
                 </button>
                 <button
                   onClick={() => startGame('doomsday-hard')}
                   className="bg-gradient-to-r from-purple-400 to-pink-500 text-white py-2 px-1 rounded-xl font-bold text-xs hover:from-purple-500 hover:to-pink-600 transition transform hover:scale-105 shadow-lg"
                 >
-                  1900-<br/>2099
+                  1900−<br/>2099
                 </button>
               </div>
             </div>
 
             {/* Survival */}
-            <div className="flex items-start gap-2">
-              <div className="text-2xl flex-shrink-0 w-8 text-center">🏆</div>
-              <div className="flex-1">
-                <button
-                  onClick={() => startGame('mix-survival')}
-                  className="w-full bg-gradient-to-r from-red-500 to-orange-600 text-white py-3 rounded-xl font-bold text-base hover:from-red-600 hover:to-orange-700 transition transform hover:scale-105 shadow-lg"
-                >
-                  Survival Mix
-                  <div className="text-xs opacity-90 font-normal">3 strikes and you're out</div>
-                </button>
-              </div>
+            <div>
+              <h2 className="text-lg font-bold text-gray-700 mb-2 flex items-center gap-2">
+                <span className="text-2xl">🏆</span> Survival
+              </h2>
+              <button
+                onClick={() => startGame('mix-survival')}
+                className="w-full bg-gradient-to-r from-red-500 to-orange-600 text-white py-3 rounded-xl font-bold text-base hover:from-red-600 hover:to-orange-700 transition transform hover:scale-105 shadow-lg"
+              >
+                Survival Mix
+                <div className="text-xs opacity-90 font-normal">3 strikes and you're out</div>
+              </button>
             </div>
           </div>
 
@@ -875,7 +889,7 @@ const MentalMathGame = () => {
               <div className="text-center">
                 <span className="text-gray-500">平均 </span>
                 <span className="font-bold text-blue-600">
-                  {avgTime > 0 ? `${avgTime.toFixed(1)}秒` : '-'}
+                  {avgTime > 0 ? `${avgTime.toFixed(1)}秒` : '−'}
                 </span>
               </div>
               <div className="text-center">
