@@ -1,10 +1,10 @@
-// mental_math.js v0.9.1
-// fix: v0.9.1 - Unify minus sign, button widths, move icons to headings, reorder modes, faster feedback, flexible decimal input, hide decimal division answers
+// mental_math.js v0.9.2
+// fix: v0.9.2 - Hide correct answers on incorrect submissions, unify menu button widths
 
 import React, { useState, useEffect, useRef } from 'react';
 
 const MentalMathGame = () => {
-  const VERSION = 'v0.9.1';
+  const VERSION = 'v0.9.2';
   const TOTAL_PROBLEMS = 10;
 
   // 基本設定
@@ -529,16 +529,10 @@ const MentalMathGame = () => {
         correctAnswer: null // 正解時は表示しない
       });
     } else {
-      // 不正解時: 小数点割り算モードでは正解を表示しない
-      const showCorrectAnswer = currentProblem.displayFormat !== 'decimal';
-      
+      // 不正解時: 正解を表示しない（全モード統一）
       setFeedback({ 
         type: 'incorrect',
-        correctAnswer: showCorrectAnswer ? (
-          currentProblem.displayFormat === 'remainder'
-            ? `${currentProblem.answer.quotient}⋯${currentProblem.answer.remainder}`
-            : currentProblem.answer
-        ) : null
+        correctAnswer: null // v0.9.2: 全モードで非表示
       });
     }
     
@@ -699,10 +693,10 @@ const MentalMathGame = () => {
                   99+99
                 </button>
               </div>
-              <div className="grid grid-cols-1 gap-2 mt-2">
+              <div className="grid grid-cols-3 gap-2 mt-2">
                 <button
                   onClick={() => startGame('999+999')}
-                  className="bg-gradient-to-r from-green-400 to-emerald-500 text-white py-2 px-1 rounded-xl font-bold text-sm hover:from-green-500 hover:to-emerald-600 transition transform hover:scale-105 shadow-lg"
+                  className="col-span-3 bg-gradient-to-r from-green-400 to-emerald-500 text-white py-2 px-1 rounded-xl font-bold text-sm hover:from-green-500 hover:to-emerald-600 transition transform hover:scale-105 shadow-lg"
                 >
                   999+999
                 </button>
@@ -755,10 +749,10 @@ const MentalMathGame = () => {
                   99×99
                 </button>
               </div>
-              <div className="grid grid-cols-2 gap-2 mt-2">
+              <div className="grid grid-cols-3 gap-2 mt-2">
                 <button
                   onClick={() => startGame('19x19')}
-                  className="bg-gradient-to-r from-blue-400 to-indigo-500 text-white py-2 px-1 rounded-xl font-bold text-sm hover:from-blue-500 hover:to-indigo-600 transition transform hover:scale-105 shadow-lg"
+                  className="col-span-2 bg-gradient-to-r from-blue-400 to-indigo-500 text-white py-2 px-1 rounded-xl font-bold text-sm hover:from-blue-500 hover:to-indigo-600 transition transform hover:scale-105 shadow-lg"
                 >
                   19×19
                 </button>
