@@ -1,10 +1,10 @@
-// mental_math.js v0.8.4
-// fix: v0.8.4 - Remove 99^2 from Survival Mix mode to fix display bug
+// mental_math.js v0.8.5
+// fix: v0.8.5 - Menu symbol fix, keyboard input change, layout improvements, division range to 100
 
 import React, { useState, useEffect, useRef } from 'react';
 
 const MentalMathGame = () => {
-  const VERSION = 'v0.8.4';
+  const VERSION = 'v0.8.5';
   const TOTAL_PROBLEMS = 10;
 
   // 基本設定
@@ -140,9 +140,8 @@ const MentalMathGame = () => {
         '999-999',   // 3桁 - 3桁
         '99x9',      // 2桁 × 1桁
         '19x19',     // 11-19 × 11-19
-        //'99^2',      // 2桁の2乗
         '99x99',     // 2桁 × 2桁
-        '99÷9'       // 2桁 ÷ 1桁（余りあり）
+        '100÷9'      // 2桁 ÷ 1桁（余りあり、範囲10-100）
       ];
       const randomMode = modes[Math.floor(Math.random() * modes.length)];
       return generateProblem(randomMode);
@@ -223,9 +222,9 @@ const MentalMathGame = () => {
       const quotient = Math.floor(Math.random() * 8) + 2;
       const dividend = divisor * quotient;
       return { a: dividend, b: divisor, answer: quotient, operator: '÷' };
-    } else if (currentMode === '99÷9') {
+    } else if (currentMode === '100÷9') {
       const divisor = Math.floor(Math.random() * 8) + 2;
-      const dividend = Math.floor(Math.random() * 90) + 10;
+      const dividend = Math.floor(Math.random() * 91) + 10; // 10-100
       const quotient = Math.floor(dividend / divisor);
       const remainder = dividend % divisor;
       
@@ -473,7 +472,7 @@ const MentalMathGame = () => {
         backspace();
       } else if (e.key === 'Escape') {
         clearInput();
-      } else if (e.key === '+') {
+      } else if (e.key === '.') {
         inputEllipsis();
       }
     };
@@ -505,7 +504,7 @@ const MentalMathGame = () => {
 
           <div className="mb-4">
             <h2 className="text-base sm:text-lg font-bold text-gray-700 mb-2 flex items-center gap-2">
-              ➕ 足し算
+              + 足し算
             </h2>
             <div className="grid grid-cols-3 gap-2">
               <button
@@ -539,7 +538,7 @@ const MentalMathGame = () => {
 
           <div className="mb-4">
             <h2 className="text-base sm:text-lg font-bold text-gray-700 mb-2 flex items-center gap-2">
-              ➖ 引き算
+              - 引き算
             </h2>
             <div className="grid grid-cols-3 gap-2">
               <button
@@ -559,7 +558,7 @@ const MentalMathGame = () => {
 
           <div className="mb-4">
             <h2 className="text-base sm:text-lg font-bold text-gray-700 mb-2 flex items-center gap-2">
-              ✕ 掛け算
+              × 掛け算
             </h2>
             <div className="grid grid-cols-3 gap-2">
               <button
@@ -599,7 +598,7 @@ const MentalMathGame = () => {
 
           <div className="mb-4">
             <h2 className="text-base sm:text-lg font-bold text-gray-700 mb-2 flex items-center gap-2">
-              ➗ 割り算
+              ÷ 割り算
             </h2>
             <div className="grid grid-cols-3 gap-2">
               <button
@@ -609,10 +608,10 @@ const MentalMathGame = () => {
                 81÷9
               </button>
               <button
-                onClick={() => startGame('99÷9')}
+                onClick={() => startGame('100÷9')}
                 className="bg-gradient-to-r from-pink-400 to-rose-500 text-white py-3 rounded-xl font-bold text-base sm:text-lg hover:from-pink-500 hover:to-rose-600 transition transform hover:scale-105 shadow-lg"
               >
-                99÷9
+                100÷9
               </button>
             </div>
           </div>
@@ -725,14 +724,16 @@ const MentalMathGame = () => {
                   {currentProblem.a} {currentProblem.operator} {currentProblem.b}
                 </div>
               )}
-              <div className="text-5xl sm:text-6xl md:text-7xl font-mono text-blue-600 font-bold">
-                {userAnswer || '_'}
+              <div className="text-5xl sm:text-6xl md:text-7xl font-mono text-blue-600 font-bold min-h-[1.2em]">
+                {userAnswer || ''}
               </div>
-              {weekdayName && (
-                <div className="text-2xl sm:text-3xl text-gray-600 mt-2">
-                  {weekdayName}
-                </div>
-              )}
+              <div className="h-8 flex items-center justify-center">
+                {weekdayName && (
+                  <div className="text-xl sm:text-2xl text-gray-400">
+                    {weekdayName}
+                  </div>
+                )}
+              </div>
             </div>
             
             {feedback && (
