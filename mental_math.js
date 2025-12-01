@@ -1,10 +1,10 @@
-// mental_math.js v0.9.3
-// feat: v0.9.3 - Add identities (0,1), expand ranges (999+999, 100÷9), survival modes, decimal display, 600ms feedback
+// mental_math.js v0.9.4
+// feat: v0.9.4 - Unify menu layout (3-col), fix decimal display, standardize fonts
 
 import React, { useState, useEffect, useRef } from 'react';
 
 const MentalMathGame = () => {
-  const VERSION = 'v0.9.3';
+  const VERSION = 'v0.9.4';
   const TOTAL_PROBLEMS = 10;
 
   // 基本設定
@@ -238,6 +238,10 @@ const MentalMathGame = () => {
     const { integerPart, nonRepeating, repeating, isTerminating } = decimalInfo;
     
     if (isTerminating) {
+      // 割り切れる場合（小数部分が0）は整数のみ表示
+      if (nonRepeating === '' || nonRepeating === '0') {
+        return `${integerPart}`;
+      }
       return `${integerPart}.${nonRepeating}`;
     } else {
       // Unicode combining overline (U+0305) を使用
@@ -712,10 +716,10 @@ const MentalMathGame = () => {
               <h2 className="text-lg font-bold text-gray-700 mb-2 flex items-center gap-2">
                 <span className="text-2xl">−</span> Subtraction
               </h2>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 <button
                   onClick={() => startGame('99-99')}
-                  className="bg-gradient-to-r from-teal-400 to-cyan-500 text-white py-2 px-1 rounded-xl font-bold text-sm hover:from-teal-500 hover:to-cyan-600 transition transform hover:scale-105 shadow-lg"
+                  className="col-span-2 bg-gradient-to-r from-teal-400 to-cyan-500 text-white py-2 px-1 rounded-xl font-bold text-sm hover:from-teal-500 hover:to-cyan-600 transition transform hover:scale-105 shadow-lg"
                 >
                   99−99
                 </button>
@@ -774,18 +778,18 @@ const MentalMathGame = () => {
               <h2 className="text-lg font-bold text-gray-700 mb-2 flex items-center gap-2">
                 <span className="text-2xl">÷</span> Division
               </h2>
-              <div className="grid grid-cols-1 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 <button
                   onClick={() => startGame('81÷9')}
-                  className="bg-gradient-to-r from-purple-400 to-pink-500 text-white py-2 px-1 rounded-xl font-bold text-xs hover:from-purple-500 hover:to-pink-600 transition transform hover:scale-105 shadow-lg"
+                  className="col-span-3 bg-gradient-to-r from-purple-400 to-pink-500 text-white py-2 px-1 rounded-xl font-bold text-xs hover:from-purple-500 hover:to-pink-600 transition transform hover:scale-105 shadow-lg"
                 >
                   81÷9
                 </button>
               </div>
-              <div className="grid grid-cols-2 gap-2 mt-2">
+              <div className="grid grid-cols-3 gap-2 mt-2">
                 <button
                   onClick={() => startGame('100÷9')}
-                  className="bg-gradient-to-r from-pink-400 to-rose-500 text-white py-2 px-1 rounded-xl font-bold text-xs hover:from-pink-500 hover:to-rose-600 transition transform hover:scale-105 shadow-lg"
+                  className="col-span-2 bg-gradient-to-r from-pink-400 to-rose-500 text-white py-2 px-1 rounded-xl font-bold text-xs hover:from-pink-500 hover:to-rose-600 transition transform hover:scale-105 shadow-lg"
                 >
                   100÷9<br/>=11⋯1
                 </button>
@@ -803,10 +807,10 @@ const MentalMathGame = () => {
               <h2 className="text-lg font-bold text-gray-700 mb-2 flex items-center gap-2">
                 <span className="text-2xl">📅</span> Weekday
               </h2>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 <button
                   onClick={() => startGame('doomsday-easy')}
-                  className="bg-gradient-to-r from-cyan-400 to-blue-500 text-white py-2 px-1 rounded-xl font-bold text-xs hover:from-cyan-500 hover:to-blue-600 transition transform hover:scale-105 shadow-lg"
+                  className="col-span-2 bg-gradient-to-r from-cyan-400 to-blue-500 text-white py-2 px-1 rounded-xl font-bold text-xs hover:from-cyan-500 hover:to-blue-600 transition transform hover:scale-105 shadow-lg"
                 >
                   {currentYear}−<br/>{currentYear + 1}
                 </button>
@@ -900,15 +904,15 @@ const MentalMathGame = () => {
           <div className="bg-white rounded-2xl shadow-xl flex flex-col items-center justify-center mb-2 relative p-4 overflow-hidden" style={{ minHeight: '280px' }}>
             <div className="text-center w-full">
               {currentProblem.operator === 'doomsday' ? (
-                <div className="text-4xl sm:text-5xl md:text-6xl font-bold text-gray-800 mb-2 sm:mb-3">
+                <div className="text-4xl sm:text-5xl md:text-6xl font-bold font-mono text-gray-800 mb-2 sm:mb-3">
                   {currentProblem.displayText}
                 </div>
               ) : mode === '99^2' ? (
-                <div className="text-5xl sm:text-6xl md:text-7xl font-bold text-gray-800 mb-2 sm:mb-3 whitespace-nowrap">
+                <div className="text-5xl sm:text-6xl md:text-7xl font-bold font-mono text-gray-800 mb-2 sm:mb-3 whitespace-nowrap">
                   {currentProblem.a}²
                 </div>
               ) : (
-                <div className="text-5xl sm:text-6xl md:text-7xl font-bold text-gray-800 mb-2 sm:mb-3 whitespace-nowrap">
+                <div className="text-5xl sm:text-6xl md:text-7xl font-bold font-mono text-gray-800 mb-2 sm:mb-3 whitespace-nowrap">
                   {currentProblem.a} {currentProblem.operator} {currentProblem.b}
                 </div>
               )}
