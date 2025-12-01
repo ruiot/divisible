@@ -1,10 +1,10 @@
-// mental_math.js v0.9.2
-// fix: v0.9.2 - Hide correct answers on incorrect submissions, unify menu button widths
+// mental_math.js v0.9.3
+// feat: v0.9.3 - Add identities (0,1), expand ranges (999+999, 100÷9), survival modes, decimal display, 600ms feedback
 
 import React, { useState, useEffect, useRef } from 'react';
 
 const MentalMathGame = () => {
-  const VERSION = 'v0.9.2';
+  const VERSION = 'v0.9.3';
   const TOTAL_PROBLEMS = 10;
 
   // 基本設定
@@ -264,14 +264,17 @@ const MentalMathGame = () => {
     // Survival Mix mode
     if (currentMode === 'mix-survival') {
       const modes = [
+        '9+9',       // 1桁 + 1桁
         '99+9',      // 2桁 + 1桁
         '99+99',     // 2桁 + 2桁
         '999+999',   // 3桁 + 3桁
         '99-99',     // 2桁 - 2桁
         '999-999',   // 3桁 - 3桁
+        '9x9',       // 1桁 × 1桁
         '99x9',      // 2桁 × 1桁
         '19x19',     // 11-19 × 11-19
         '99x99',     // 2桁 × 2桁
+        '81÷9',      // 割り切れる割り算
         '100÷11'     // 小数点割り算（循環小数）
       ];
       const randomMode = modes[Math.floor(Math.random() * modes.length)];
@@ -321,41 +324,41 @@ const MentalMathGame = () => {
     }
     
     if (currentMode === '9+9') {
-      a = Math.floor(Math.random() * 9) + 1;
-      b = Math.floor(Math.random() * 9) + 1;
+      a = Math.floor(Math.random() * 10); // 0-9
+      b = Math.floor(Math.random() * 10); // 0-9
       return { a, b, answer: a + b, operator: '+' };
     } else if (currentMode === '99+9') {
-      a = Math.floor(Math.random() * 89) + 11;
-      b = Math.floor(Math.random() * 9) + 1;
+      a = Math.floor(Math.random() * 90) + 10; // 10-99
+      b = Math.floor(Math.random() * 10); // 0-9
       return { a, b, answer: a + b, operator: '+' };
     } else if (currentMode === '99+99') {
-      a = Math.floor(Math.random() * 89) + 11;
-      b = Math.floor(Math.random() * 89) + 11;
+      a = Math.floor(Math.random() * 90) + 10; // 10-99
+      b = Math.floor(Math.random() * 90) + 10; // 10-99
       return { a, b, answer: a + b, operator: '+' };
     } else if (currentMode === '999+999') {
-      a = Math.floor(Math.random() * 900) + 100;
-      b = Math.floor(Math.random() * 900) + 100;
+      a = Math.floor(Math.random() * 900) + 100; // 100-999
+      b = Math.floor(Math.random() * 1000); // 0-999
       return { a, b, answer: a + b, operator: '+' };
     }
     
     if (currentMode === '99-99') {
-      a = Math.floor(Math.random() * 90) + 10;
-      b = Math.floor(Math.random() * a);
+      a = Math.floor(Math.random() * 90) + 10; // 10-99
+      b = Math.floor(Math.random() * a); // 0-(a-1)
       return { a, b, answer: a - b, operator: '−' };
     } else if (currentMode === '999-999') {
-      a = Math.floor(Math.random() * 900) + 100;
-      b = Math.floor(Math.random() * a);
+      a = Math.floor(Math.random() * 900) + 100; // 100-999
+      b = Math.floor(Math.random() * a); // 0-(a-1)
       return { a, b, answer: a - b, operator: '−' };
     }
     
     if (currentMode === '81÷9') {
-      const divisor = Math.floor(Math.random() * 8) + 2;
-      const quotient = Math.floor(Math.random() * 8) + 2;
-      const dividend = divisor * quotient;
+      const divisor = Math.floor(Math.random() * 9) + 1; // 1-9
+      const quotient = Math.floor(Math.random() * 10); // 0-9
+      const dividend = divisor * quotient; // 0-81
       return { a: dividend, b: divisor, answer: quotient, operator: '÷' };
     } else if (currentMode === '100÷9') {
-      const divisor = Math.floor(Math.random() * 8) + 2;
-      const dividend = Math.floor(Math.random() * 91) + 10; // 10-100
+      const divisor = Math.floor(Math.random() * 9) + 1; // 1-9
+      const dividend = Math.floor(Math.random() * 101); // 0-100
       const quotient = Math.floor(dividend / divisor);
       const remainder = dividend % divisor;
       
@@ -381,21 +384,21 @@ const MentalMathGame = () => {
     }
     
     if (currentMode === '9x9') {
-      a = Math.floor(Math.random() * 8) + 2;
-      b = Math.floor(Math.random() * 8) + 2;
+      a = Math.floor(Math.random() * 10); // 0-9
+      b = Math.floor(Math.random() * 10); // 0-9
     } else if (currentMode === '19x19') {
-      a = Math.floor(Math.random() * 9) + 11;
-      b = Math.floor(Math.random() * 9) + 11;
+      a = Math.floor(Math.random() * 9) + 11; // 11-19
+      b = Math.floor(Math.random() * 9) + 11; // 11-19
     } else if (currentMode === '99x9') {
-      a = Math.floor(Math.random() * 90) + 10;
-      b = Math.floor(Math.random() * 8) + 2;
+      a = Math.floor(Math.random() * 90) + 10; // 10-99
+      b = Math.floor(Math.random() * 9) + 1; // 1-9
     } else if (currentMode === '99^2') {
-      a = Math.floor(Math.random() * 89) + 11;
+      a = Math.floor(Math.random() * 89) + 11; // 11-99
       b = a;
       return { a, b, answer: a * b, operator: '²' };
     } else if (currentMode === '99x99') {
-      a = Math.floor(Math.random() * 90) + 10;
-      b = Math.floor(Math.random() * 90) + 10;
+      a = Math.floor(Math.random() * 90) + 10; // 10-99
+      b = Math.floor(Math.random() * 90) + 10; // 10-99
     }
     
     return { a, b, answer: a * b, operator: '×' };
@@ -526,13 +529,14 @@ const MentalMathGame = () => {
       setFeedback({ 
         type: 'correct', 
         dayName: currentProblem.operator === 'doomsday' ? dayNames[currentProblem.answer] : null,
-        correctAnswer: null // 正解時は表示しない
+        correctAnswer: currentProblem.displayFormat === 'decimal' 
+          ? formatRepeatingDecimal(currentProblem.answer)
+          : null
       });
     } else {
-      // 不正解時: 正解を表示しない（全モード統一）
       setFeedback({ 
         type: 'incorrect',
-        correctAnswer: null // v0.9.2: 全モードで非表示
+        correctAnswer: null
       });
     }
     
@@ -591,7 +595,7 @@ const MentalMathGame = () => {
             return newUsed;
           });
         }
-      }, 800);
+      }, 600);
     } else {
       setMistakeCount(mistakeCount + 1);
       
@@ -604,7 +608,7 @@ const MentalMathGame = () => {
           playSound('gameover');
           setTimeout(() => {
             setGameState('finished');
-          }, 800);
+          }, 600);
           return;
         }
       }
@@ -612,7 +616,7 @@ const MentalMathGame = () => {
       setTimeout(() => {
         setFeedback(null);
         setUserAnswer('');
-      }, 800);
+      }, 600);
     }
   };
 
@@ -932,8 +936,8 @@ const MentalMathGame = () => {
                     {feedback.dayName} ({currentProblem.answer})
                   </div>
                 )}
-                {feedback.correctAnswer && (
-                  <div className="text-white text-2xl sm:text-3xl font-bold font-mono">
+                {feedback.type === 'correct' && feedback.correctAnswer && (
+                  <div className="text-white text-xl sm:text-2xl font-bold font-mono mt-2">
                     {feedback.correctAnswer}
                   </div>
                 )}
